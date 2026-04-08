@@ -35,7 +35,15 @@ Examples = [
 Design = [
     joinpath("Design", "DesignIntroduction.md"),
     "Philosophy" => [joinpath("Design", "Philosophy", "WhyMantis.md")],
-    "Theory" => [joinpath("Design", "Theory", "FEM.md")],
+    "Theory" => 
+        joinpath.(
+            "Design", 
+            "Theory", 
+            [
+                "FEM.md",
+                "FEEC.md"
+            ],
+        ),
     "Modules" =>
         joinpath.(
             "Design",
