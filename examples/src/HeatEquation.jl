@@ -397,5 +397,235 @@ fig = DisplayAs.Text(DisplayAs.PNG(fig))
 # f(x, t) = \frac{2\alpha\pi^{2}}{L^{2}}\cos\left(\frac{2\pi}{L} x\right)\,.
 # ```
 # We choose a finite element space with ``(N,p,k) = (10,2,1)``, i.e., with more elements
-#  compared to the last example. This is to ensure that we have sufficient accuracy for
+# compared to the last example. This is to ensure that we have sufficient accuracy for
 # computing a decent solution.
+
+
+## The size of the domain where to solve our problem
+L = 1.0
+## The number of elements in the mesh
+num_elements = 10
+line_geometry = Geometry.create_cartesian_box((0.0,), (L,), (num_elements,))
+
+## The degree of the piecewise-polynomial basis functions
+polynomial_degree = 2
+## The smoothness of the basis functions (-1 <= smoothness <= p-1)
+smoothness = 1
+
+## The piecewise-polynomial function space
+V = FunctionSpaces.BSplineSpace(line_geometry, polynomial_degree, smoothness)
+## The number of basis functions in the piecewise-polynomial function space
+num_basis_functions = FunctionSpaces.get_num_basis(V)
+
+## Use this function space as a differential form
+V⁰ = Forms.FormSpace(0, V, L"V^0")
+
+## Thermal diffusivity
+const alpha = 1.0
+
+## Analytical solution
+u_analytical_expression(x) = [1.0 .+ 0.5*cos.((2.0*π/L)*x[:, 1])]
+u_analytical = Mantis.Forms.AnalyticalFormField(
+    0, u_analytical_expression, line_geometry, L"u_{\text{exact}}"
+)
+
+## Right hand side
+f_expression(x) = [@. alpha*0.5*(4.0*(π^2)/(L^2))*cos(2.0*π*x[:, 1]/L)]
+f = Mantis.Forms.AnalyticalFormField(0, f_expression, line_geometry, "f")
+
+
+function assemble_system_matrices(
+    V::Forms.FormSpace,
+    f::Forms.AnalyticalFormField,
+    alpha::Float64,
+    dΩ::Quadrature.AbstractQuadratureRule,
+)
+    ## assemble L2 inner-product matrix
+    weak_form_inputs = Assemblers.WeakFormInputs(V, f)
+    lhs_expressions, rhs_expressions = Assemblers.L2_projection(weak_form_inputs, dΩ)
+    weak_form = Assemblers.WeakForm(lhs_expressions, rhs_expressions, weak_form_inputs)
+    M, _ = Assemblers.assemble(weak_form)
+
+    ## assemble H1 inner-product matrix
+    weak_form_inputs = Assemblers.WeakFormInputs(V, f)
+    lhs_expressions, rhs_expressions = Assemblers.zero_form_hodge_laplacian(weak_form_inputs, dΩ)
+    weak_form = Assemblers.WeakForm(lhs_expressions, rhs_expressions, weak_form_inputs)
+    ## bc = Forms.set_dirichlet_boundary_conditions(V, 0.0)
+    K, f = Assemblers.assemble(weak_form)
+
+    return M, alpha .* K, f
+end
+
+## Define the quadrature
+quadrature_degree = polynomial_degree + 2
+∫ = Quadrature.gauss_legendre(quadrature_degree)
+dΩ = Quadrature.StandardQuadrature(∫, num_elements)
+
+## Assemble the matrices
+M, K, F = assemble_system_matrices(V⁰, f, alpha, dΩ)
+
+## Remove the unecessary parts of the matrices
+F = Array(F[2:(end-1)])
+
+K_0 = Array(K[2:(end-1), 1])
+K_L = Array(K[2:(end-1), end])
+
+M = M[2:(end-1), 2:(end-1)]
+K = K[2:(end-1), 2:(end-1)]
+
+## Boundary conditions
+u_0 = 1.5
+u_L = 1.5
+
+## Solution field
+u_h = Mantis.Forms.FormField(V⁰, "u_h")
+
+## With boundary values set
+u_h.coefficients[1] = u_0
+u_h.coefficients[end] = u_L
+
+## Solve for the unknown coefficients
+u_h.coefficients[2:(end-1)] = K \ (F - u_0*K_0 - u_L*K_L)
+
+## Plot the error with respect to the analytical solution
+error = u_analytical - u_h
+
+## Compute the error norm
+error_nom = Analysis.L2_norm(error, dΩ)
+
+
+# ## Time Integration
+
+# We will now consider a specific time integrator to evolve our solution in time: the
+# midpoint rule.
+#
+# The midpoint rule is the lowest order Gauss integrator and, for linear systems (as is our
+# case), is an explicit integrator. Additionally, it can be interpreted as a Runge-Kutta
+# method (i.e., it has an associated Butcher tableau). Given a first order ODE in the time
+# interval ``(0, T)``
+# ```math
+#     \frac{\mathrm{d}g}{\mathrm{d}t} = f(t, g(t))
+# ```
+# with initial condition ``g(0) = g_{0}``, the midpoint rule to evolve the solution from
+# the time instant ``t_{k}`` to the time instant ``t_{k+1} = t_{k} + \Delta t`` is
+# ```math
+#     g_{k+1} = g_{k} + \Delta t\, f\left(t + \frac{\Delta t}{2}, \frac{g_{k+1} + g_{k}}{2}\right)\,.
+# ```
+# where ``g_{k} = g(k\Delta t)``.
+#
+# For our ODE system of equations resulting from the spatial discretisation process
+# ```math
+# \mathbf{M}\frac{d\mathbf{C}}{dt} = - \mathbf{K} \mathbf{C} + \mathbf{F} - u_{0}\mathbf{F}^{b,0} - u_{L}\mathbf{F}^{b,L}\;,
+# ```
+# the midpoint rule time integration takes the form
+# ```math
+# \mathbf{M}C_{k+1} = \mathbf{M}C_{k} - \Delta t\mathbf{K} \frac{\mathbf{C}_{k+1} + \mathbf{C}_{k}}{2} + \Delta t\mathbf{F}\left(\left(k+\frac{1}{2}\right)\Delta t\right) - \Delta tu_{0}\left(\left(k+\frac{1}{2}\right)\Delta t\right)\mathbf{F}^{b,0} - \Delta tu_{L}\left(\left(k+\frac{1}{2}\right)\Delta t\right)\mathbf{F}^{b,L}\;.
+# ```
+# Only ``C_{k+1}`` is unknown, therefore we can rearrange our expression to get
+# ```math
+# \left(\mathbf{M} + \frac{\Delta t}{2}\mathbf{K}\right)C_{k+1} = \left(\mathbf{M} - \frac{\Delta t}{2} \mathbf{K}\right)\mathbf{C}_{k} + \Delta t\mathbf{F}\left(\left(k+\frac{1}{2}\right)\Delta t\right) - \Delta tu_{0}\left(\left(k+\frac{1}{2}\right)\Delta t\right)\mathbf{F}^{b,0} - \Delta tu_{L}\left(\left(k+\frac{1}{2}\right)\Delta t\right)\mathbf{F}^{b,L}\;.
+# ```
+# We already know all the terms, therefore we can directly implement the time stepping
+# procedure.
+
+## Time step size and number of steps.
+const dt = 0.005
+const num_time_steps = 300
+
+## Because we are solving an equation at every timestep, we have to treat our case as an
+## implicit ODE to solve the equation.
+S_plus = M + 0.5*dt*K
+S_minus = M - 0.5*dt*K
+function heat_equation_solver(
+    y::Vector{Float64},
+    λ::Float64,
+    t::Float64;
+)
+    return S_plus \ (S_minus * y + dt*F - dt*u_0 * K_0 - dt*u_L * K_L)
+end
+const heat_equation = TimeIntegrators.define_implicit_ode(
+    (x, λ, t) -> heat_equation_solver(x, λ, t)
+)
+
+## We choose the backward Euler scheme, which is already predefined.
+scheme = TimeIntegrators.BACKWARD_EULER
+
+## We also create a helper function to easily evaluate our solution.
+function evaluate_solution(u_h)
+    geometry = Forms.get_geometry(u_h)
+    num_elements = Geometry.get_num_elements(geometry)
+    xi = Points.CartesianPoints((LinRange(0.0, 1.0, 25),))
+    all_x = Vector{Float64}(undef, 25 * num_elements)
+    all_values = Vector{Float64}(undef, 25 * num_elements)
+    for element_id in 1:num_elements
+        form_eval, _ = Forms.evaluate(u_h, element_id, xi)
+        x = Geometry.evaluate(geometry, element_id, xi)
+
+        all_x[(element_id-1)*25+1 : (element_id)*25] = x[:]
+        all_values[(element_id-1)*25+1 : (element_id)*25] = form_eval[1]
+    end
+
+    return all_x, all_values
+end
+
+## We project the initial condition onto our form space
+u_initial_expression(x) = [@. 1.5 + sin((2.0*π/L)*x[:, 1])]
+u_initial = Forms.AnalyticalFormField(0, u_initial_expression, line_geometry, "u")
+u_hi = Assemblers.solve_L2_projection(V⁰, u_initial, dΩ)
+
+## Enforce the boundary condition on the initial condition, just in case the initial
+## condition does not satisfy the boundary conditions already
+u_hi.coefficients[1] = u_0
+u_hi.coefficients[end] = u_L
+
+## Initialise the time scheme
+const u_h_n = TimeIntegrators.initializeScheme(u_hi.coefficients[2:end-1], scheme)
+
+
+# Now we are set to march our equation in time. We will also create a video, which is why
+# we set up the time `Observable`. The `all_y` variable is a lift, which is `Makie`'s way
+# of expressing a depency. That is, as soon as we update `time`, `Makie` will automatically
+# update all other variables in the plot that depend on `time`. In our case, this is the
+# `all_y` variable, which calls `TimeIntegrators.timeIntegrate!` to advance our solution.
+
+## We use Printf to print the time in our animation.
+using Printf
+
+time = Observable(dt)
+
+all_y = lift(time) do t
+    TimeIntegrators.timeIntegrate!(u_h_n, heat_equation, t, dt)
+
+    u_hi.coefficients[2:end-1] = TimeIntegrators.get_solution(u_h_n)
+
+    all_x, all_values = evaluate_solution(u_hi)
+
+    return all_values
+end
+
+all_x, all_values = evaluate_solution(u_hi)
+fig = lines(
+    all_x,
+    all_y;
+    color=:blue,
+    axis = (
+        title = @lift("t = $(@sprintf("%0.2f", round($time, digits = 2)))"),
+        limits=(0.0, 1.0, 0.0, 3.0)
+        )
+)
+
+xe, ye = evaluate_solution(u_analytical)
+lines!(xe, ye; color=:black, label="exact")
+
+record(
+    fig,
+    "heat_equation_1d.mp4",
+    LinRange(dt, dt*num_time_steps, num_time_steps);
+    framerate = 60
+) do t
+    time[] = t
+end
+
+# ```@raw html
+# <video autoplay loop muted playsinline controls src="./heat_equation_1d.mp4" />
+# ```
