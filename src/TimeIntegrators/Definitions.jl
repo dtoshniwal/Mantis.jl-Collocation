@@ -1,3 +1,14 @@
+"""
+    AbstractTimeIntegrator{num_stages, num_steps}
+
+Supertype for all time integrators.
+
+# Type parameters
+- `num_stages`: The number of stages for a multi-step scheme (such as the Runge-Kutta
+    family). Since every scheme is at least a single-stage scheme, `num_stages` >= 1.
+- `num_steps`: The number of steps for a multi-step scheme (such as the Adams-Bashforth
+    family). Since every scheme is at least a single-step scheme, `num_steps` >= 1.
+"""
 abstract type AbstractTimeIntegrator{num_stages, num_steps} end
 
 function get_num_stages(
@@ -12,16 +23,29 @@ function get_num_steps(
 end
 
 """
-    TimeIntegrationOperators{F1<:Function,F2<:Function}
+    TimeIntegrationOperators{EF, IF}
 
-explicitEvaluate::(Vector{Float64} -> Vector{Float64}) \\
-Function that solves F = f(Y) which has to be defined if Aᵉˣ ≠ 0 \\
-where F and Y are the input arguments and f is the output argument \\
+Defines the ODE-specific operators used in the time integration.
 
-implicitSolve::((Vector{Float64}, Float64) -> Vector{Float64}) \\
-Function that solves the equation Y - λ g(Y) = x which has to be defined if Aᴵᴹ ≠ 0  \\
-for 𝐘 ∈ ℝᴺ , given as input the vector 𝐗 ∈ ℝᴺ and the scalar λ ∈ ℝᴺ.\\
-In case g is a linear operator, a direct solution method can be through the inverse operator (I − λg)⁻¹, where I is the identity function.
+Makes a distiction between the explicit and implicit operators. `EF` and `IF` and the types
+of the explicit and implicit functions, respectively, which are `Nothing` if not defined.
+Note that at least one of `EF` and `IF` must be a function.
+
+# Fields
+- `explicitEvaluate::EF`: A function that evaluates the explicit part of the ODE, that is,
+    the function that evaluates F = f(y). See the manual section on [TimeIntegrators](@ref)
+    for the terminology. Note that the function must take in a `Vector`, and return a
+    `Vector` (with the same `eltype`).
+- `implicitSolve::IF`: A function that solves the implicit part of the ODE, that is, the
+    function that solves the equation Y - λ g(Y) = x. See the manual section on
+    [TimeIntegrators](@ref) for the terminology. In case g is a linear operator, a direct
+    solution method can be through the inverse operator (I − λg)⁻¹, where I is the identity
+    function.
+
+# Constructors
+- `define_explicit_ode(explicit_evaluate::Function)`: For fully explicit ODEs.
+- `define_implicit_ode(implicit_solve::Function)`: For fully implicit ODEs.
+- `define_imex_ode(explicit_evaluate::Function, implicit_solve::Function)`: For IMEX ODEs.
 """
 struct TimeIntegrationOperators{EF, IF}
     explicitEvaluate::EF
@@ -37,24 +61,42 @@ struct TimeIntegrationOperators{EF, IF}
     end
 end
 
+"""
+    define_explicit_ode(explicit_evaluate::Function)
+
+Creates a [`TimeIntegrationOperators`](@ref) object for an explicit ODE.
+"""
 function define_explicit_ode(explicit_evaluate::Function)
     return TimeIntegrationOperators(explicit_evaluate, nothing)
 end
+"""
+    define_implicit_ode(implicit_solve::Function)
+
+Creates a [`TimeIntegrationOperators`](@ref) object for an implicit ODE. This function is
+called by the [`define_implicit_linear`](@ref) functions when defining an implicit ODE.
+"""
 function define_implicit_ode(implicit_solve::Function)
     return TimeIntegrationOperators(nothing, implicit_solve)
 end
+"""
+    define_imex_ode(explicit_evaluate::Function, implicit_solve::Function)
+
+Creates a [`TimeIntegrationOperators`](@ref) object for an IMEX ODE.
+"""
 function define_imex_ode(explicit_evaluate::Function, implicit_solve::Function)
     return TimeIntegrationOperators(explicit_evaluate, implicit_solve)
 end
 
 """
-    define_implicit_linear(M::Matrix{Float64}, K::Matrix{Float64}, F::Vector{Float64})
+    define_implicit_linear(M::Matrix{T}, K::Matrix{T}, F::Vector{T}) where {T}
+    define_implicit_linear(M::Nothing, K::Nothing, F::AbstractVector{T}) where {T}
+    define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::Nothing) where {T}
+    define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::AbstractVector{T}) where {T}
+    define_implicit_linear(M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::Nothing) where {T}
+    define_implicit_linear(M::AbstractMatrix{T}, K::Nothing, F::AbstractVector{T}) where {T}
 
 Function that defines the implicit solver for a linear operator of the form Mx - λKx = F.
-
-The mass and stiffness matrices `M` and `K` can be either `Matrix{Float64}` or `nothing`,
-and the forcing vector `F` can be either `Vector{Float64}` or `nothing`. At least `K` or
-`F` should be defined.
+At least `K` or `F` should be defined.
 
 # Arguments
 - `M`: Mass matrix
@@ -62,7 +104,7 @@ and the forcing vector `F` can be either `Vector{Float64}` or `nothing`. At leas
 - `F`: Forcing vector
 
 # Returns
-- `::TimeIntegrationOperators` : Function that solves the equation M ẏ = K y + F
+- `::TimeIntegrationOperators`: See [`TimeIntegrationOperators{EF, IF}`](@ref).
 """
 function define_implicit_linear(
     M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::AbstractVector{T}
@@ -139,7 +181,7 @@ function define_implicit_linear(func::Function)
 end
 
 """
-    struct TimeLevels
+    TimeLevels
 
 time levels of the scheme which are used to determine the structure of the input/output vector y associated to the scheme
 
@@ -155,19 +197,19 @@ struct TimeLevels
 end
 
 """
-    struct IMEX{num_stages, num_steps} <: AbstractTimeIntegrator{num_stages, num_steps}
+    IMEX{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
 
-Implicit-Explicit time integration scheme
+Implicit-Explicit (IMEX) time integration scheme.
 
 # Fields
-- `A_IM::SMatrix{num_stages,num_stages,Float64}`: Implicit matrix A of size sxs
-- `A_EX::SMatrix{num_stages,num_stages,Float64}`: Explicit matrix A of size sxs
-- `B_IM::SMatrix{num_steps,num_stages,Float64}`: Implicit matrix B of size rxs
-- `B_EX::SMatrix{num_steps,num_stages,Float64}`: Explicit matrix B of size rxs
-- `U::SMatrix{num_stages,num_steps,Float64}`: Matrix U of size sxr
-- `V::SMatrix{num_steps,num_steps,Float64}`: Matrix V of size rxr
-- `C_IM::SVector{num_stages,Float64}`: time Vector C of size num_stages, indicates at what time the stage is evaluated
-- `C_EX::SVector{num_stages,Float64}`: time Vector C of size num_stages, indicates at what time the stage is evaluated
+- `A_IM::SMatrix{num_stages, num_stages, Float64}`: Implicit matrix A.
+- `A_EX::SMatrix{num_stages, num_stages, Float64}`: Explicit matrix A.
+- `B_IM::SMatrix{num_steps, num_stages, Float64}`: Implicit matrix B.
+- `B_EX::SMatrix{num_steps, num_stages, Float64}`: Explicit matrix B.
+- `U::SMatrix{num_stages, num_steps, Float64}`: Matrix U.
+- `V::SMatrix{num_steps, num_steps, Float64}`: Matrix V.
+- `C_IM::SVector{num_stages, Float64}`: time Vector C of size num_stages, indicates at what time the stage is evaluated
+- `C_EX::SVector{num_stages, Float64}`: time Vector C of size num_stages, indicates at what time the stage is evaluated
 - `time_levels::TimeLevels`: reflects the structure of the input/output vector y associated to the scheme
 - `order::Int`: order of the scheme
 
@@ -175,16 +217,16 @@ Implicit-Explicit time integration scheme
 - `num_stages`: number of stages of the scheme
 - `num_steps`: number of external steps of the scheme
 """
-struct IMEX{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
-    A_IM::SMatrix{num_stages, num_stages, NT, AA} # of size sxs
-    A_EX::SMatrix{num_stages, num_stages, NT, AA} # of size sxs
-    B_IM::SMatrix{num_steps, num_stages, NT, AE}  # of size rxs
-    B_EX::SMatrix{num_steps, num_stages, NT, AE}  # of size rxs
-    U::SMatrix{num_stages, num_steps, NT, AE} # of size sxr
-    V::SMatrix{num_steps, num_steps, NT, EE} # of size rxr
-    C_IM::SVector{num_stages, NT}  # of size num_stages, indicates at what time the stage is evaluated
-    C_EX::SVector{num_stages, NT}  # of size num_stages, indicates at what time the stage is evaluated
-    # reflects the structure of the input/output vector y associated to the scheme
+struct IMEX{num_stages, num_steps, NT, AA, AE, EE} <:
+    AbstractTimeIntegrator{num_stages, num_steps}
+    A_IM::SMatrix{num_stages, num_stages, NT, AA}
+    A_EX::SMatrix{num_stages, num_stages, NT, AA}
+    B_IM::SMatrix{num_steps, num_stages, NT, AE}
+    B_EX::SMatrix{num_steps, num_stages, NT, AE}
+    U::SMatrix{num_stages, num_steps, NT, AE}
+    V::SMatrix{num_steps, num_steps, NT, EE}
+    C_IM::SVector{num_stages, NT}
+    C_EX::SVector{num_stages, NT}
     time_levels::TimeLevels
     order::Int
 
@@ -207,9 +249,15 @@ struct IMEX{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num
 end
 
 """
-    struct Explicit{num_stages, num_steps} <: AbstractTimeIntegrator{num_stages,num_steps}
+    Explicit{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
 
-Explicit time integration scheme
+Explicit time integration scheme.
+
+!!! note "Explicit time integrators are explicit in the ODE sense"
+    Following [Vos2011](@cite), the explicit time integrators in this framework are
+    considered explicit integrators when applied to ODEs. When applied to PDEs using a
+    Galerkin method, one still has to solve a linear system. This can be referred to as an
+    indirect explicit method in this case.
 
 # Fields
 - `A::SMatrix{num_stages,num_stages,Float64}`: matrix A of size sxs
@@ -226,11 +274,11 @@ Explicit time integration scheme
 """
 struct Explicit{num_stages, num_steps, NT, AA, AE, EE} <:
        AbstractTimeIntegrator{num_stages, num_steps}
-    A::SMatrix{num_stages, num_stages, NT, AA} # of size sxs
-    B::SMatrix{num_steps, num_stages, NT, AE}  # of size rxs
-    U::SMatrix{num_stages, num_steps, NT, AE} # of size sxr
-    V::SMatrix{num_steps, num_steps, NT, EE} # of size rxr
-    C::SVector{num_stages, NT}  # of size num_stages, indicates at what time the stage is evaluated
+    A::SMatrix{num_stages, num_stages, NT, AA}
+    B::SMatrix{num_steps, num_stages, NT, AE}
+    U::SMatrix{num_stages, num_steps, NT, AE}
+    V::SMatrix{num_steps, num_steps, NT, EE}
+    C::SVector{num_stages, NT}
     time_levels::TimeLevels
     order::Int
 
@@ -266,11 +314,11 @@ Implicit time integration scheme
 - `num_steps`: amount of external steps of the scheme
 """
 struct Implicit{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
-    A::SMatrix{num_stages, num_stages, NT, AA} # of size sxs
-    B::SMatrix{num_steps, num_stages, NT, AE}  # of size rxs
-    U::SMatrix{num_stages, num_steps, NT, AE} # of size sxr
-    V::SMatrix{num_steps, num_steps, NT, EE} # of size rxr
-    C::SVector{num_stages, NT}  # of size num_stages, indicates at what time the stage is evaluated
+    A::SMatrix{num_stages, num_stages, NT, AA}
+    B::SMatrix{num_steps, num_stages, NT, AE}
+    U::SMatrix{num_stages, num_steps, NT, AE}
+    V::SMatrix{num_steps, num_steps, NT, EE}
+    C::SVector{num_stages, NT}
     time_levels::TimeLevels
     order::Int
 
@@ -292,15 +340,25 @@ end
 
 Solution of the time integrator.
 
+# Constructors
+- `TimeIntegrationSolution(
+    solution::Matrix{NT},
+    scheme::AbstractTimeIntegrator,
+    startup_scheme::Union{Nothing, AbstractTimeIntegrator},
+    remaining_startup_steps::Int,
+) where {NT}`: General constructor. Note that the eltype of the solution matrix will
+    dictate the number type used in the `TimeIntegrationSolution`.
+
 # Fields
-- `N::Int`: Number varables in the system
-- `solution::Matrix{NT}`: y, of size (N, num_steps)
-- `scheme::T<:AbstractTimeIntegrator`: time integration scheme
-- `startup_scheme::S<:Union{Nothing,AbstractTimeIntegrator}`: startup scheme
+- `N::Int`: Number varables in the system.
+- `solution::Matrix{NT}`: Of size (`N`, num_steps).
+- `scheme::T<:AbstractTimeIntegrator`: The time integration scheme.
+- `startup_scheme::S<:Union{Nothing, AbstractTimeIntegrator}`: The startup scheme, if
+    desired.
 - `remaining_startup_steps::Int`: remaining startup steps
-- `solution_alocated::Matrix{NT}`: used as pre-allocated memory for calculations
-- `F_alocated::Matrix{NT}`: used as pre-allocated memory for calculations
-- `G_alocated::Matrix{NT}`: used as pre-allocated memory for calculations
+- `solution_alocated::Matrix{NT}`: Pre-allocated memory for calculations.
+- `F_alocated::Matrix{NT}`: Pre-allocated memory for calculations.
+- `G_alocated::Matrix{NT}`: Pre-allocated memory for calculations.
 """
 mutable struct TimeIntegrationSolution{T, S, NT}
     N::Int
@@ -312,23 +370,6 @@ mutable struct TimeIntegrationSolution{T, S, NT}
     F_alocated::Matrix{NT}
     G_alocated::Matrix{NT}
 
-    """
-        TimeIntegrationSolution(
-            solution::Matrix{NT},
-            scheme::AbstractTimeIntegrator,
-            startup_scheme::Union{Nothing, AbstractTimeIntegrator},
-            remaining_startup_steps::Int,
-        ) where {NT}
-
-    Create a TimeIntegrationSolution
-
-    # Arguments
-    - `solution::Matrix{NT}`: y, of size (N, num_steps). Its `eltype` will dictate the
-        number type used in the TimeIntegrationSolution.
-    - `scheme::AbstractTimeIntegrator`: time integration scheme
-    - `startup_scheme::Union{Nothing,AbstractTimeIntegrator}`: startup scheme
-    - `remaining_startup_steps::Int`: remaining startup steps
-    """
     function TimeIntegrationSolution(
         solution::Matrix{NT},
         scheme::AbstractTimeIntegrator{num_stages, num_steps},
