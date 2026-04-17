@@ -52,6 +52,7 @@ Design = [
                 "Plot.md",
                 "Points.md",
                 "Quadrature.md",
+                "TimeIntegrators.md",
             ],
         ),
 ]
@@ -100,7 +101,20 @@ bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"); style=:authory
 # definitions as work-around.
 # Author names are ordered alphabetically on last name.
 makedocs(;
-    modules=[Mantis.Assemblers, Mantis.FunctionSpaces, Mantis.Quadrature, Mantis.Hierarchy],
+    modules=[
+            Mantis.Analysis,
+            Mantis.Assemblers,
+            Mantis.Forms,
+            Mantis.FunctionSpaces,
+            Mantis.GeneralHelpers,
+            Mantis.Geometry,
+            Mantis.Hierarchy,
+            Mantis.Mesh,
+            Mantis.Plot,
+            Mantis.Points,
+            Mantis.Quadrature,
+            Mantis.TimeIntegrators,
+        ],
     repo=Remotes.GitHub("MantisFEM", "Mantis.jl"),
     sitename="Mantis.jl",
     authors="Diogo C. Cabanas, Joey Dekker, Artur Palha, Deepesh Toshniwal",
