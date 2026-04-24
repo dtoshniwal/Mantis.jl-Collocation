@@ -233,12 +233,12 @@ const RALTSON4 = mapButcherTableauToScheme(
         (-3365 + 2094*sqrt(5))/6040,
         0.0,
         0.0,
-        (-3785 + 1620)/1024,
-        (-975 + 3046*sqrt(5))/2552,
+        (3785 - 1620*sqrt(5))/1024,
+        (-975 - 3046*sqrt(5))/2552,
         0.0,
         0.0,
         0.0,
-        (467040 - 203968*sqrt(5))/240845,
+        (467040 + 203968*sqrt(5))/240845,
         0.0,
         0.0,
         0.0,
@@ -262,7 +262,7 @@ const BACKWARD_EULER = mapButcherTableauToScheme(
 )
 
 const RADAU_IA_1 = mapButcherTableauToScheme(
-    SMatrix{1,1}(1.0), SVector(1.0), SVector(1.0), 1
+    SMatrix{1,1}(1.0), SVector(1.0), SVector(0.0), 1
 )
 
 # order 2
@@ -271,13 +271,15 @@ const IMPLICIT_MIDPOINT = mapButcherTableauToScheme(
 )
 
 # order 2
-# Kraaijevanger and Spijker's two-stage Diagonally Implicit Runge–Kutta method
+# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer. Anal., 14(6):1006–1021, 1977
+const _α_DIRK2 = 1 - sqrt(2)/2
 const DIRK2 = mapButcherTableauToScheme(
-    SMatrix{2,2}(1/2, -1/2, 0.0, 2.0), SVector(1 - 1 / 2, 3 / 2), SVector(1 / 2, 3 / 2), 2
+    SMatrix{2,2}(_α_DIRK2, 1-_α_DIRK2, 0.0, _α_DIRK2), SVector(1-_α_DIRK2, _α_DIRK2), SVector(_α_DIRK2, 1), 2
 )
 
 # order 3
 # Crouzeix's two-stage, 3rd order Diagonally Implicit Runge–Kutta method:
+# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer. Anal., 14(6):1006–1021, 1977
 const DIRK3 = mapButcherTableauToScheme(
     SMatrix{2,2}(1/2 + sqrt(3)/6, -sqrt(3)/3, 0.0, 1/2+sqrt(3)/6),
     SVector(1 / 2, 1 / 2),
@@ -292,11 +294,12 @@ const RADAU_IA_3 = mapButcherTableauToScheme(
 
 # order 4
 # Crouzeix's three-stage, 4th order Diagonally Implicit Runge–Kutta method:
-const _α = 2 / sqrt(3) * cos(pi / 18)
+# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer. Anal., 14(6):1006–1021, 1977
+const _α_DIRK4 = 2 / sqrt(3) * cos(pi / 18)
 const DIRK4 = mapButcherTableauToScheme(
-    SMatrix{3,3}(1/2+_α/2, -_α/2, 1+_α, 0.0, 1/2+_α, -(1.0 + 2*_α), 0.0, 0.0, 1/2+_α/2),
-    SVector(1 / (6 * _α^2), 1.0 - 1 / (3 * _α^2), 1 / (6 * _α^2)),
-    SVector(1 / 2 + _α / 2, 1 / 2, 1 / 2 - _α / 2),
+    SMatrix{3,3}((1+_α_DIRK4)/2, -_α_DIRK4/2, 1+_α_DIRK4, 0.0, (1+_α_DIRK4)/2, -(1.0 + 2*_α_DIRK4), 0.0, 0.0, (1+_α_DIRK4)/2),
+    SVector(1 / (6 * _α_DIRK4^2), 1.0 - 1 / (3 * _α_DIRK4^2), 1 / (6 * _α_DIRK4^2)),
+    SVector((1 + _α_DIRK4) / 2, 1 / 2, (1 - _α_DIRK4) / 2),
     4,
 )
 
