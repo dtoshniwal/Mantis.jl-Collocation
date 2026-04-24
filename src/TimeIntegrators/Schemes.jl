@@ -14,13 +14,26 @@ International Journal of Computational Fluid Dynamics. 25. 107-125. 10.1080/1061
 Specficly Appendix A.1
 """
 function mapButcherTableauToScheme(
-    A::SMatrix{num_stages, num_stages, Float64},
-    B::SVector{num_stages, Float64},
-    C::SVector{num_stages, Float64},
+    A::SMatrix{num_stages, num_stages, T},
+    B::SVector{num_stages, T},
+    C::SVector{num_stages, T},
     order::Int,
-) where {num_stages}
-    # if the matrix A has non-zero elements in the upper triangular part (including the diagonal) then it is an implicit scheme
-    is_implicit::Bool = any(A[i, j] != 0.0 for i in 1:num_stages for j in i:num_stages)
+) where {num_stages, T}
+    # If the matrix A has non-zero elements in the upper triangular part (including the
+    # diagonal) then it is an implicit scheme. We do make a distinction between diagonally
+    # implicit (nonzero diagonal but all other uppper triangular entries are zero) and
+    # fully implicit schemes.
+    is_implicit = false
+    is_diagonally_implicit = false
+    for i in 1:num_stages
+        for j in i:num_stages
+            if i == j && A[i, j] != zero(eltype(A))
+                is_diagonally_implicit = true
+            elseif A[i, j] != zero(eltype(A))
+                is_implicit = true
+            end
+        end
+    end
 
     U = ones(SMatrix{num_stages, 1})
     V = ones(SMatrix{1, 1})
@@ -33,6 +46,8 @@ function mapButcherTableauToScheme(
 
     if is_implicit
         return Implicit(A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order)
+    elseif is_diagonally_implicit
+        return DiagonallyImplicit(A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order)
     else
         return Explicit(A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order)
     end

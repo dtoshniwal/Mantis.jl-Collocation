@@ -146,37 +146,43 @@ and ODE system operators.
 - `TimeIntegrationSolution`: The updated solution vector after one time step.
 """
 function timeIntegrate!(
-    y_n::TimeIntegrationSolution,
+    y_n::TimeIntegrationSolution{T, S},
     ode::TimeIntegrationOperators,
     t::Float64,
     dt::Float64;
     kwargs...,
-)
-    if !(isnothing(get_startup_scheme(y_n)))
-        # Calculate the step-derivatives for the current step for the multi-step scheme.
-        num_startup_steps = maximum(y_n.scheme.time_levels)
-        if num_startup_steps >= 0 && get_remaining_startup_steps(y_n) == num_startup_steps
-            calc_step_derivatives!(y_n, ode, dt, t; kwargs...)
-        end
-
-        # Check if we still need to use the startup scheme.
-        if get_remaining_startup_steps(y_n) >= 0
-            if y_n.scheme.time_levels == y_n.startup_scheme.time_levels
-                throw(ArgumentError("The scheme is not a startup scheme"))
-            end
-            startup_scheme = get_startup_scheme(y_n)
-            y_old = y_n
-            y_n = initializeScheme(get_solution(y_old), y_old.startup_scheme)
-            shift_steps!(y_old)
-            timeIntegrate_!(y_n, startup_scheme, ode, t, dt; kwargs...)
-            sol = get_solution(y_n)
-            y_n = y_old
-            y_n.solution[:, 1] = sol
-            calc_step_derivatives!(y_n, ode, dt, t + dt; kwargs...)
-        end
-    else
-        timeIntegrate_!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
+) where {T, S <: AbstractTimeIntegrator}
+    # Calculate the step-derivatives for the current step for the multi-step scheme.
+    num_startup_steps = maximum(y_n.scheme.time_levels)
+    if num_startup_steps >= 0 && get_remaining_startup_steps(y_n) == num_startup_steps
+        calc_step_derivatives!(y_n, ode, dt, t; kwargs...)
     end
+
+    # Check if we still need to use the startup scheme.
+    if get_remaining_startup_steps(y_n) >= 0
+        if y_n.scheme.time_levels == y_n.startup_scheme.time_levels
+            throw(ArgumentError("The scheme is not a startup scheme"))
+        end
+        startup_scheme = get_startup_scheme(y_n)
+        y_old = y_n
+        y_n = initializeScheme(get_solution(y_old), y_old.startup_scheme)
+        shift_steps!(y_old)
+        timeIntegrate_!(y_n, startup_scheme, ode, t, dt; kwargs...)
+        sol = get_solution(y_n)
+        y_n = y_old
+        y_n.solution[:, 1] = sol
+        calc_step_derivatives!(y_n, ode, dt, t + dt; kwargs...)
+    end
+end
+
+function timeIntegrate!(
+    y_n::TimeIntegrationSolution{T, Nothing}, # No startup scheme
+    ode::TimeIntegrationOperators,
+    t::Float64,
+    dt::Float64;
+    kwargs...,
+) where {T}
+    timeIntegrate_!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
 end
 
 """
@@ -215,7 +221,7 @@ function timeIntegrate_!(
     y_nm1 = get_solution(y_n)
     F = get_F_allocated(y_n)
     F .= 0.0
-    Yi = Vector{Float64}(undef, N)
+    Yi = Vector{eltype(y_n)}(undef, N)
     @views yⁿ = y_n.solution_alocated[:, :]
 
     @inbounds for i in 1:num_stages
@@ -242,6 +248,81 @@ function timeIntegrate_!(
 
     # swich the pointers of y_n.solution and y_n.solution_alocated
     return y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+end
+
+"""
+    timeIntegrate_!(
+        y_n::TimeIntegrationSolution,
+        scheme::DiagonallyImplicit{num_stages, num_steps},
+        ode::TimeIntegrationOperators,
+        t::Float64,
+        dt::Float64;
+        kwargs...,
+    ) where {num_steps, num_stages}
+
+Perform a single time integration step using the given DiagonallyImplicit time integration scheme and
+ODE system operators.
+
+# Arguments
+- `y_n::TimeIntegrationSolution{num_steps}`: The current solution vector.
+- `scheme::DiagonallyImplicit{num_stages,num_steps}`: The DiagonallyImplicit time integration scheme.
+- `ode::TimeIntegrationOperators`: The ODE system operators.
+- `t::Float64`: The current time.
+- `dt::Float64`: The time step.
+- `kwargs...`: Additional arguments passed to the ODE system.
+
+# Returns (in-place)
+- `TimeIntegrationSolution{num_steps}`: The updated solution vector after one time step.
+"""
+function timeIntegrate_!(
+    y_n::TimeIntegrationSolution,
+    scheme::DiagonallyImplicit{num_stages, num_steps},
+    ode::TimeIntegrationOperators,
+    t::Float64,
+    dt::Float64;
+    kwargs...,
+) where {num_steps, num_stages}
+    N = get_num_variables(y_n)
+    y_nm1 = get_solution(y_n)
+    G = get_G_allocated(y_n)
+    G .= 0.0
+    Yᵢ = Vector{eltype(y_n)}(undef, N)
+    xᵢ = Vector{eltype(y_n)}(undef, N)
+    @views yⁿ = y_n.solution_alocated[:, :]
+
+    @inbounds for i in 1:num_stages
+        # calculate the temporary value xᵢ
+        xᵢ .= dt * G[:, 1:i] * scheme.A[i, 1:i]
+        xᵢ .+= y_nm1 * scheme.U[i, :]
+
+        # Calculate the stage value Yᵢ
+        # solve (Yᵢ - aᵢᵢᴵᴹ * h * g(Yᵢ,t)) = xᵢ
+        Yᵢ = ode.implicitSolve(xᵢ, scheme.A[i, i] * dt, t + scheme.C[i] * dt; kwargs...)
+        # Calculate the stage derivative Gᵢ
+        let a_ii = scheme.A[i, i]
+            if a_ii != 0.0
+                G[:, i] .= (Yᵢ - xᵢ) / (a_ii * dt)
+            else
+                G[:, i] .= 0.0
+            end
+        end
+    end
+
+    # Optimisation when both the last stages are the same as the first step, so we can skip
+    # the calculation of the final solution
+    start_index = 1
+    if scheme.U[end, :] == scheme.V[1, :] && scheme.A[end, :] == scheme.B[1, :]
+        yⁿ[:, 1] .= Yᵢ
+        start_index = 2
+    end
+
+    @inbounds for i in start_index:num_steps
+        @views yⁿ[:, i] .= dt * G * scheme.B[i, :]
+        @views yⁿ[:, i] .+= y_nm1 * scheme.V[i, :]
+    end
+
+    y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+    return nothing
 end
 
 """
@@ -280,39 +361,25 @@ function timeIntegrate_!(
     y_nm1 = get_solution(y_n)
     G = get_G_allocated(y_n)
     G .= 0.0
-    Yᵢ = Vector{Float64}(undef, N)
-    xᵢ = Vector{Float64}(undef, N)
+    Yᵢ = Vector{eltype(y_n)}(undef, N)
+    xᵢ = Vector{eltype(y_n)}(undef, N)
     @views yⁿ = y_n.solution_alocated[:, :]
+    @show size(y_nm1)
+    @show typeof(y_nm1)
+    xi = reduce(vcat, y_nm1 for i in 1:num_stages)
+    @show size(xi)
+    @show typeof(xi)
 
-    @inbounds for i in 1:num_stages
-        # calculate the temporary value xᵢ
-        xᵢ .= dt * G[:, 1:i] * scheme.A[i, 1:i]
-        xᵢ .+= y_nm1 * scheme.U[i, :]
+    newA = SparseArrays.blockdiag([SparseArrays.sparse(scheme.A * dt) for i in 1:N]...)
+    Y = ode.implicitSolve(xi, newA, t + scheme.C[1] * dt; kwargs...)
+    # Y = ode.implicitSolve(xi, scheme.A * dt, t + scheme.C[1] * dt; kwargs...)
 
-        # Calculate the stage value Yᵢ
-        # solve (Yᵢ - aᵢᵢᴵᴹ * h * g(Yᵢ,t)) = xᵢ
-        Yᵢ = ode.implicitSolve(xᵢ, scheme.A[i, i] * dt, t + scheme.C[i] * dt; kwargs...)
-        # Calculate the stage derivative Gᵢ
-        let a_ii = scheme.A[i, i]
-            if a_ii != 0.0
-                G[:, i] .= (Yᵢ - xᵢ) / (a_ii * dt)
-            else
-                G[:, i] .= 0.0
-            end
+    @inbounds for i in 1:num_steps
+        allG = ode.implicitEvaluate(Y; kwargs...)
+        for n in 1:N
+            @views yⁿ[n, i] = dt * dot(allG[(n-1)*num_stages+1:end], scheme.B[i, :])
+            @views yⁿ[n, i] += sum(y_nm1[n] .* scheme.V[i, :])
         end
-    end
-
-    # Optimisation when both the last stages are the same as the first step, so we can skip
-    # the calculation of the final solution
-    start_index = 1
-    if scheme.U[end, :] == scheme.V[1, :] && scheme.A[end, :] == scheme.B[1, :]
-        yⁿ[:, 1] .= Yᵢ
-        start_index = 2
-    end
-
-    @inbounds for i in start_index:num_steps
-        @views yⁿ[:, i] .= dt * G * scheme.B[i, :]
-        @views yⁿ[:, i] .+= y_nm1 * scheme.V[i, :]
     end
 
     y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
@@ -357,8 +424,8 @@ function timeIntegrate_!(
     G = get_G_allocated(y_n)
     F .= 0.0
     G .= 0.0
-    Yᵢ = Vector{Float64}(undef, N)
-    xᵢ = Vector{Float64}(undef, N)
+    Yᵢ = Vector{eltype(y_n)}(undef, N)
+    xᵢ = Vector{eltype(y_n)}(undef, N)
     @views yⁿ = y_n.solution_alocated[:, :]
 
     @inbounds for i in 1:num_stages

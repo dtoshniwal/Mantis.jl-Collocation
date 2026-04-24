@@ -2,6 +2,7 @@ module TimeIntegrators
 
 using LinearAlgebra
 using StaticArrays
+import SparseArrays
 
 include("Definitions.jl")
 include("Schemes.jl")

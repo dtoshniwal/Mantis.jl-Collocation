@@ -47,16 +47,18 @@ Note that at least one of `EF` and `IF` must be a function.
 - `define_implicit_ode(implicit_solve::Function)`: For fully implicit ODEs.
 - `define_imex_ode(explicit_evaluate::Function, implicit_solve::Function)`: For IMEX ODEs.
 """
-struct TimeIntegrationOperators{EF, IF}
+struct TimeIntegrationOperators{EF, IF, IE}
     explicitEvaluate::EF
     implicitSolve::IF
+    implicitEvaluate::IE
 
     function TimeIntegrationOperators(
         explicit_evaluate::Union{Nothing, Function},
         implicit_solve::Union{Nothing, Function},
+        implicit_evaluate::Union{Nothing, Function},
     )
-        new{typeof(explicit_evaluate), typeof(implicit_solve)}(
-            explicit_evaluate, implicit_solve
+        new{typeof(explicit_evaluate), typeof(implicit_solve), typeof(implicit_evaluate)}(
+            explicit_evaluate, implicit_solve, implicit_evaluate
         )
     end
 end
@@ -67,7 +69,7 @@ end
 Creates a [`TimeIntegrationOperators`](@ref) object for an explicit ODE.
 """
 function define_explicit_ode(explicit_evaluate::Function)
-    return TimeIntegrationOperators(explicit_evaluate, nothing)
+    return TimeIntegrationOperators(explicit_evaluate, nothing, nothing)
 end
 """
     define_implicit_ode(implicit_solve::Function)
@@ -75,20 +77,20 @@ end
 Creates a [`TimeIntegrationOperators`](@ref) object for an implicit ODE. This function is
 called by the [`define_implicit_linear`](@ref) functions when defining an implicit ODE.
 """
-function define_implicit_ode(implicit_solve::Function)
-    return TimeIntegrationOperators(nothing, implicit_solve)
+function define_implicit_ode(implicit_solve::Function, implicit_evaluate::Function)
+    return TimeIntegrationOperators(nothing, implicit_solve, implicit_evaluate)
 end
 """
     define_imex_ode(explicit_evaluate::Function, implicit_solve::Function)
 
 Creates a [`TimeIntegrationOperators`](@ref) object for an IMEX ODE.
 """
-function define_imex_ode(explicit_evaluate::Function, implicit_solve::Function)
-    return TimeIntegrationOperators(explicit_evaluate, implicit_solve)
+function define_imex_ode(explicit_evaluate::Function, implicit_solve::Function, implicit_evaluate::Function)
+    return TimeIntegrationOperators(explicit_evaluate, implicit_solve, implicit_evaluate)
 end
 
 """
-    define_implicit_linear(M::Matrix{T}, K::Matrix{T}, F::Vector{T}) where {T}
+    define_implicit_linear(M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::AbstractVector{T}) where {T}
     define_implicit_linear(M::Nothing, K::Nothing, F::AbstractVector{T}) where {T}
     define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::Nothing) where {T}
     define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::AbstractVector{T}) where {T}
@@ -107,35 +109,38 @@ At least `K` or `F` should be defined.
 - `::TimeIntegrationOperators`: See [`TimeIntegrationOperators{EF, IF}`](@ref).
 """
 function define_implicit_linear(
-    M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::AbstractVector{T}
+    M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::AbstractVector{T}, g
 ) where {T}
-    return define_implicit_ode((x, λ, t) -> (M - λ * K) \ (M * x + λ * F))
+    return define_implicit_ode((x, λ, t) -> (M - λ * K) \ (M * x + λ * F), g)
 end
-function define_implicit_linear(M::Nothing, K::Nothing, F::AbstractVector{T}) where {T}
-    return define_implicit_ode((x, λ, t) -> x + λ * F)
+function define_implicit_linear(M::Nothing, K::Nothing, F::AbstractVector{T}, g) where {T}
+    return define_implicit_ode((x, λ, t) -> x + λ * F, g)
 end
-function define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::Nothing) where {T}
-    return define_implicit_ode((x, λ, t) -> (I - λ * K) \ x)
+function define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::Nothing, g) where {T}
+    return define_implicit_ode((x, λ, t) -> (I - λ * K) \ x, g)
+end
+function define_implicit_linear(M::Nothing, K, F::Nothing, g)
+    return define_implicit_ode((x, λ, t) -> (I - λ * K) \ x, g)
 end
 function define_implicit_linear(
-    M::Nothing, K::AbstractMatrix{T}, F::AbstractVector{T}
+    M::Nothing, K::AbstractMatrix{T}, F::AbstractVector{T}, g
 ) where {T}
-    return define_implicit_ode((x, λ, t) -> (I - λ * K) \ (x + λ * F))
+    return define_implicit_ode((x, λ, t) -> (I - λ * K) \ (x + λ * F), g)
 end
 function define_implicit_linear(
-    M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::Nothing
+    M::AbstractMatrix{T}, K::AbstractMatrix{T}, F::Nothing, g
 ) where {T}
-    return define_implicit_ode((x, λ, t) -> (M - λ * K) \ (M * x))
+    return define_implicit_ode((x, λ, t) -> (M - λ * K) \ (M * x), g)
 end
 function define_implicit_linear(
-    M::AbstractMatrix{T}, K::Nothing, F::AbstractVector{T}
+    M::AbstractMatrix{T}, K::Nothing, F::AbstractVector{T}, g
 ) where {T}
-    return define_implicit_ode((x, λ, t) -> x + λ * (M \ F))
+    return define_implicit_ode((x, λ, t) -> x + λ * (M \ F), g)
 end
-function define_implicit_linear(M::AbstractMatrix{T}, K::Nothing, F::Nothing) where {T}
+function define_implicit_linear(M::AbstractMatrix{T}, K::Nothing, F::Nothing, g) where {T}
     throw(ArgumentError("At least one of the matrices K or F has to be defined"))
 end
-function define_implicit_linear(M::Nothing, K::Nothing, F::Nothing)
+function define_implicit_linear(M::Nothing, K::Nothing, F::Nothing, g)
     throw(ArgumentError("At least one of the matrices K or F has to be defined"))
 end
 
@@ -151,7 +156,7 @@ The matrix has to be defined 'nothing' if it is not present. Example func(t) = (
 # Returns
 - implicitSolve::Function : Function that solves the equation M ẏ = K y + F
 """
-function define_implicit_linear(func::Function)
+function define_implicit_linear(func::Function, g)
     function implicitSolveMKF(x::Vector{Float64}, λ::Float64, t::Float64)::Vector{Float64}
         M, K, F = func(t)
         return (M - λ * K) \ (M * x + λ * F)
@@ -170,13 +175,13 @@ function define_implicit_linear(func::Function)
     end
     M, K, F = func(0.0)
     if F === nothing && K !== nothing && M !== nothing
-        return define_implicit_ode(implicitSolveMK)
+        return define_implicit_ode(implicitSolveMK, g)
     elseif F !== nothing && K === nothing && M !== nothing
-        return define_implicit_ode(implicitSolveMF)
+        return define_implicit_ode(implicitSolveMF, g)
     elseif F !== nothing && K !== nothing && M === nothing
-        return define_implicit_ode(implicitSolveKF)
+        return define_implicit_ode(implicitSolveKF, g)
     else
-        return define_implicit_ode(implicitSolveMKF)
+        return define_implicit_ode(implicitSolveMKF, g)
     end
 end
 
@@ -296,6 +301,46 @@ struct Explicit{num_stages, num_steps, NT, AA, AE, EE} <:
 end
 
 """
+    struct DiagonallyImplicit{num_stages, num_steps} <: AbstractTimeIntegrator{num_stages, num_steps}
+
+DiagonallyImplicit time integration scheme
+
+# Fields
+- `A::SMatrix{num_stages,num_stages,Float64}`: matrix A of size sxs
+- `B::SMatrix{num_steps,num_stages,Float64}`: matrix B of size rxs
+- `U::SMatrix{num_stages,num_steps,Float64}`: matrix U of size sxr
+- `V::SMatrix{num_steps,num_steps,Float64}`: matrix V of size rxr
+- `C::SVector{num_stages,Float64}`: time Vector C of size num_stages, indicates at what time the stage is evaluated
+- `time_levels::TimeLevels`: reflects the structure of the input/output vector y associated to the scheme
+- `order::Int`: order of the scheme
+
+# Type parameters
+- `num_stages`: amount of stages of the scheme
+- `num_steps`: amount of external steps of the scheme
+"""
+struct DiagonallyImplicit{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
+    A::SMatrix{num_stages, num_stages, NT, AA}
+    B::SMatrix{num_steps, num_stages, NT, AE}
+    U::SMatrix{num_stages, num_steps, NT, AE}
+    V::SMatrix{num_steps, num_steps, NT, EE}
+    C::SVector{num_stages, NT}
+    time_levels::TimeLevels
+    order::Int
+
+    function DiagonallyImplicit(
+        A::SMatrix{num_stages, num_stages, NT, AA},
+        B::SMatrix{num_steps, num_stages, NT, AE},
+        U::SMatrix{num_stages, num_steps, NT, AE},
+        V::SMatrix{num_steps, num_steps, NT, EE},
+        C::SVector{num_stages, NT},
+        time_levels::TimeLevels,
+        order::Int,
+    ) where {num_stages, num_steps, NT, AA, AE, EE}
+        return new{num_stages, num_steps, NT, AA, AE, EE}(A, B, U, V, C, time_levels, order)
+    end
+end
+
+"""
     struct Implicit{num_stages, num_steps} <: AbstractTimeIntegrator{num_stages, num_steps}
 
 Implicit time integration scheme
@@ -334,6 +379,11 @@ struct Implicit{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator
         return new{num_stages, num_steps, NT, AA, AE, EE}(A, B, U, V, C, time_levels, order)
     end
 end
+
+function get_order(scheme::AbstractTimeIntegrator)
+    return scheme.order
+end
+
 
 """
     TimeIntegrationSolution{T, S, NT}
@@ -388,6 +438,8 @@ mutable struct TimeIntegrationSolution{T, S, NT}
         )
     end
 end
+
+Base.eltype(::Type{TimeIntegrationSolution{T, S, NT}}) where {T, S, NT} = NT
 
 function get_num_variables(sol::TimeIntegrationSolution)
     return sol.N

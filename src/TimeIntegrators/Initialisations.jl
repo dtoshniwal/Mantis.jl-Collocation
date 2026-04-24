@@ -13,8 +13,8 @@ Creates the TimeIntegrationSolution object with a initialized y_0 vector.
 - `TimeIntegrationSolution{num_steps}`: The initialized solution vector.
 """
 function initializeScheme(
-    y0::Matrix{Float64}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
-) where {num_stages, num_steps}
+    y0::Matrix{T}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
+) where {T, num_stages, num_steps}
     return TimeIntegrationSolution(y0, scheme, nothing, -1)
 end
 
@@ -139,24 +139,24 @@ end
 
 """
     initializeScheme(
-        y0::Vector{Float64}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
-    ) where {num_stages, num_steps}
+        y0::Vector{T}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
+    ) where {T, num_stages, num_steps}
 
 For a single-step scheme (multi-stage).
 
 # Arguments
-- `y0::Vector{Float64}`: The initial value of the solution vector.
+- `y0::Vector{T}`: The initial value of the solution vector.
 - `scheme::AbstractTimeIntegrator{num_stages, num_steps}`: The time integration scheme.
 """
 function initializeScheme(
-    y0::Vector{Float64}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
-) where {num_stages, num_steps}
+    y0::Vector{T}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
+) where {T, num_stages, num_steps}
     if maximum(scheme.time_levels) != 0
         throw(ArgumentError("The scheme is not a single-step scheme"))
     end
 
     # Set the solution vector which has time level 0 to the initial value.
-    yn = zeros(length(y0), num_steps)
+    yn = zeros(T, length(y0), num_steps)
     yn[:, 1] .= y0
 
     return initializeScheme(yn, scheme)
