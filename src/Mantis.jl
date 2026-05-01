@@ -4,6 +4,7 @@ module Mantis
 #                                         Includes                                         #
 ############################################################################################
 include("GeneralHelpers/GeneralHelpers.jl")  # Creates Module GeneralHelpers
+include("Caching/Caching.jl")
 include("Mesh/Mesh.jl")  # Creates Module Mesh
 include("Points/Points.jl")  # Creates Module Mesh
 include("Hierarchy/Hierarchy.jl") # Creates Module Hierarchy
@@ -20,6 +21,8 @@ include("Plot/Plot.jl")  # Creates Module Plot
 ############################################################################################
 # Exported modules. Note that GeneralHelpers is not explicitly exported.
 export Mesh,
+export Caching,
+    Mesh,
     Points,
     Quadrature,
     Hierarchy,

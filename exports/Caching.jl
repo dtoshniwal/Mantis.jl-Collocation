@@ -1,4 +1,5 @@
 # This file is auto-generated. To edit, run 'tool/populate_exports.sh'
 
-include("Caching.jl")
-include("Forms.jl")
+using .Caching
+
+export @cached
