@@ -177,6 +177,7 @@ transformation
 function _add_geometric_scaling!(
     partial_der_eval, partial_der::PartialDerivative{manifold_dim}, element_id, xi, _
 ) where {manifold_dim}
+    throw(ArgumentError("Incorrect implementation."))
     geometry = get_geometry(partial_der)
     image_dim = Geometry.get_image_dim(geometry)
     J_T = transpose.(Geometry.jacobian(geometry, element_id, xi))
@@ -217,6 +218,32 @@ function _add_geometric_scaling!(
     xi,
     partial_orders,
 ) where {manifold_dim, expression_rank, G <: Geometry.CartesianGeometry}
+    J = Geometry.jacobian(get_geometry(partial_der), element_id, xi)
+    for point in axes(partial_der_eval[1], 1), dim in 1:manifold_dim
+        scaling = J[point][dim, dim]^partial_orders[dim]
+        for component in eachindex(partial_der_eval)
+            partial_der_eval[component][point, :] ./= scaling
+        end
+    end
+
+    return partial_der_eval
+end
+
+function _add_geometric_scaling!(
+    partial_der_eval,
+    partial_der::PartialDerivative{manifold_dim, 0, expression_rank, HG},
+    element_id,
+    xi,
+    partial_orders,
+) where {
+    manifold_dim,
+    expression_rank,
+    image_dim,
+    num_patches,
+    num_levels,
+    TG <: NTuple{num_levels, <:Geometry.CartesianGeometry},
+    HG <: Geometry.HierarchicalGeometry{manifold_dim, image_dim, num_patches, TG},
+}
     J = Geometry.jacobian(get_geometry(partial_der), element_id, xi)
     for point in axes(partial_der_eval[1], 1), dim in 1:manifold_dim
         scaling = J[point][dim, dim]^partial_orders[dim]
