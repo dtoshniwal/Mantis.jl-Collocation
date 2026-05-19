@@ -11,6 +11,7 @@ using Test
 @testset verbose=true "Assembly" begin include("Assemblers/runtests.jl") end
 @testset verbose=true "Plot" begin include("Plot/runtests.jl") end
 @testset verbose=true "GeneralHelpers" begin include("GeneralHelpers/runtests.jl") end
+@testset verbose=true "Caching" begin include("Caching/runtests.jl") end
 
 # Do not run JET tests on pre-release versions, as JET is too unstable and the CI will
 # appear as failing. Also only run it from v1.12 onwards, also for compatibility reasons.
