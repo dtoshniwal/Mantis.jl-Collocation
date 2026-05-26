@@ -3,6 +3,7 @@ module TimeIntegrationConvergenceTests
 using Mantis
 using Test
 import LinearAlgebra
+import StaticArrays
 
 # We can check the correctness of the implemented schemes by computing their rate of
 # convergence and checking if this matches the expected rate. Here, we use a simple ODE
@@ -53,7 +54,7 @@ const explicit_integrators = (
     TimeIntegrators.RALTSON4,
 )
 
-@testset "Convergence Rates Single-Step Explicit Integrators" verbose = true begin
+@testset "Single-Step Multi-Stage Explicit Integrators" verbose = true begin
     foreach(explicit_integrators) do scheme
         errors = zeros(8)
         dts = zeros(length(errors))
@@ -75,36 +76,38 @@ const explicit_integrators = (
     end
 end
 
-# const explicit_multi_step_integrators = (
-#     # Multi-step, single-stage
-#     (TimeIntegrators.AB1, TimeIntegrators.FORWARD_EULER),
-#     (TimeIntegrators.AB2, TimeIntegrators.HEUN2),
-#     (TimeIntegrators.AB3, TimeIntegrators.HEUN3),
-#     (TimeIntegrators.AB4, TimeIntegrators.RK4),
-#     (TimeIntegrators.ARK4, TimeIntegrators.RK4),
-#     #(TimeIntegrators.AB5, TimeIntegrators.FORWARD_EULER),
-# )
-# @testset "Convergence Rates Multi-Step Explicit Integrators" verbose = true begin
-#     foreach(explicit_multi_step_integrators) do (scheme, startup_scheme)
-#         errors = zeros(8)
-#         dts = zeros(length(errors))
-#         dt = 0.2
-#         for i in eachindex(errors)
-#             y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
-#             dt = dt / 2
-#             dts[i] = dt
-#             for t in 0.0:dt:t_final-dt
-#                 TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
-#             end
+const explicit_multi_step_integrators = (
+    # Multi-step, single-stage
+    (TimeIntegrators.AB1, nothing),
+    (TimeIntegrators.AB2, TimeIntegrators.HEUN2),
+    (TimeIntegrators.AB3, TimeIntegrators.HEUN3),
+    (TimeIntegrators.AB4, TimeIntegrators.RK4),
+)
+@testset "Multi-Step Single-Stage Explicit Integrators" verbose = true begin
+    foreach(explicit_multi_step_integrators) do (scheme, startup_scheme)
+        errors = zeros(8)
+        dts = zeros(length(errors))
+        dt = 0.2
+        for i in eachindex(errors)
+            if !isnothing(startup_scheme)
+                y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+            else
+                y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+            end
+            dt = dt / 2
+            dts[i] = dt
+            for t in 0.0:dt:t_final-dt
+                TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
+            end
 
-#             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
-#         end
-#         rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+            errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
+        end
+        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
 
-#         # The rate is computed to 2 decimal places.
-#         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
-#     end
-# end
+        # The rate is computed to 2 decimal places.
+        @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
+    end
+end
 
 # Fully implicit ---------------------------------------------------------------------------
 const implicit_integrators = (
@@ -118,23 +121,13 @@ const implicit_integrators = (
     TimeIntegrators.DIRK4,
     TimeIntegrators.GAUSS_LEGENDRE_4,
     TimeIntegrators.GAUSS_LEGENDRE_6,
-    # # Multi-step, single-stage
-    # TimeIntegrators.AM1,
-    # TimeIntegrators.AM2,
-    # TimeIntegrators.AM3,
-    # TimeIntegrators.AM4,
-    # TimeIntegrators.BD1,
-    # TimeIntegrators.BD2,
-    # TimeIntegrators.BD3,
-    # TimeIntegrators.BD4,
 )
 
-@testset "Convergence Rates Implicit Integrators" verbose = true begin
+@testset "Single-Step Multi-Stage Implicit Integrators" verbose = true begin
     foreach(implicit_integrators) do scheme
         errors = zeros(8)
         dts = zeros(length(errors))
         dt = 0.2
-        #@show scheme
         for i in eachindex(errors)
             y_n = TimeIntegrators.initializeScheme([y_0], scheme)
             dt = dt / 2
@@ -144,11 +137,8 @@ const implicit_integrators = (
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
-            #@show TimeIntegrators.get_solution(y_n)
         end
-        #@show errors
         rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
-        #@show rates
 
         # The rate is computed to 2 decimal places.
         if TimeIntegrators.get_order(scheme) > 4
@@ -163,19 +153,66 @@ const implicit_integrators = (
     end
 end
 
+# The BDF schemes also test the initialisation of schemes that only require previous
+# solutions, but not previous stage derivatives. The AM schemes require implicit stage
+# derivatives, but no additional previous solutions. The AB schemes require explicit stage
+# derivatives, but no additional previous solutions.
+const implicit_multi_step_integrators = (
+    # Multi-step, single-stage
+    (TimeIntegrators.AM0, nothing),
+    (TimeIntegrators.AM1, TimeIntegrators.BACKWARD_EULER),
+    (TimeIntegrators.AM2, TimeIntegrators.DIRK2),
+    (TimeIntegrators.AM3, TimeIntegrators.DIRK3),
+    (TimeIntegrators.AM4, TimeIntegrators.GAUSS_LEGENDRE_6),
+    (TimeIntegrators.BDF1, nothing),
+    (TimeIntegrators.BDF2, TimeIntegrators.BACKWARD_EULER),
+    (TimeIntegrators.BDF3, TimeIntegrators.DIRK2),
+    (TimeIntegrators.BDF4, TimeIntegrators.DIRK3),
+)
+@testset "Multi-Step Single-Stage Implicit Integrators" verbose = true begin
+    foreach(implicit_multi_step_integrators) do (scheme, startup_scheme)
+        errors = zeros(8)
+        dts = zeros(length(errors))
+        dt = 0.2
+        for i in eachindex(errors)
+            dt = dt / 2
+            if !isnothing(startup_scheme)
+                y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+            else
+                y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+            end
+
+            dts[i] = dt
+            for t in 0.0:dt:t_final-dt
+                TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
+            end
+
+            errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
+        end
+        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+
+        # The rate is computed to 2 decimal places.
+        if TimeIntegrators.get_order(scheme) > 4
+            # For high-order methods, we reach machine precision so the rate bottoms out.
+            # We can pick an earlier rate to check correctness.
+            test_rate = rates[4]
+        else
+            test_rate = rates[end]
+        end
+        @test isapprox(test_rate, TimeIntegrators.get_order(scheme), rtol=1e-2)
+    end
+end
+
 # IMEX -------------------------------------------------------------------------------------
-const imex_integrators = (
+const one_step_imex_integrators = (
     # Single-step, multi-stage
     TimeIntegrators.BACKWARD_FORWARD_EULER,
     TimeIntegrators.MIDPOINT_IMEX,
-    # TimeIntegrators.RK3_IMEX,
-    # # Multi-step, single-stage
-    # TimeIntegrators.CNAB2,
-    # TimeIntegrators.SSSS3,
+    TimeIntegrators.RK3_IMEX,
 )
 
-@testset "Convergence Rates IMEX Integrators" verbose = true begin
-    foreach(imex_integrators) do scheme
+@testset "Single-Step Multi-Stage IMEX Integrators" verbose = true begin
+    foreach(one_step_imex_integrators) do scheme
         errors = zeros(8)
         dts = zeros(length(errors))
         dt = 0.2
@@ -188,16 +225,99 @@ const imex_integrators = (
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
-            @show TimeIntegrators.get_solution(y_n)
         end
-        #@show errors
+
         rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
-        #@show rates
 
         # The rate is computed to 2 decimal places.
         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
     end
 end
 
+const multi_step_imex_integrators = (
+    # Multi-step, single-stage
+    (TimeIntegrators.CNAB2, TimeIntegrators.MIDPOINT_IMEX),
+    (TimeIntegrators.SSSS2, TimeIntegrators.MIDPOINT_IMEX),
+)
+
+@testset "Multi-Step Single-Stage IMEX Integrators" verbose = true begin
+    foreach(multi_step_imex_integrators) do (scheme, startup_scheme)
+        errors = zeros(8)
+        dts = zeros(length(errors))
+        dt = 0.2
+        for i in eachindex(errors)
+            if !isnothing(startup_scheme)
+                y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+            else
+                y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+            end
+
+            dt = dt / 2
+            dts[i] = dt
+            for t in 0.0:dt:t_final-dt
+                TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
+            end
+
+            errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
+        end
+
+        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+
+        # The rate is computed to 2 decimal places.
+        @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
+    end
+end
+
+
+# Combined multi-step multi-stage ----------------------------------------------------------
+
+# Almost Runge-Kutta methods----------------------------------------------------------------
+# Rattenbury, N., 2005. Almost Runge–Kutta methods for stiff  and non-stiff problems.
+# Thesis (PhD). The University of Auckland.
+# This scheme requires a specialised initialisation, since it needs an estimate of the
+# second derivative which is not accounted for in the available initialisations. As a
+# result, this scheme is not part of Mantis.
+const ARK3 = TimeIntegrators.Explicit(
+    StaticArrays.SMatrix{3,3}(0.0, 1/2, 0.0, 0.0, 0.0, 3/4, 0.0, 0.0, 0.0), # A
+    StaticArrays.SMatrix{3,3}(0.0, 0.0, 3.0, 3/4, 0.0, -3.0, 0.0, 1.0, 2.0), # B
+    StaticArrays.SMatrix{3,3}(1.0, 1.0, 1.0, 1/3, 1/6, 1/4, 1/18, 1/18, 0.0), # U
+    StaticArrays.SMatrix{3,3}(1.0, 0.0, 0.0, 1/4, 0, -2.0, 0.0, 0.0, 0.0), # V
+    StaticArrays.SVector(1 / 3, 2 / 3, 1.0),
+    TimeIntegrators.TimeLevels(
+        [0], # y
+        [], # Δt G
+        [0, 1],  # Δt F and Δt^2 F'
+    ),
+    3,
+)
+const explicit_multi_multi_integrators = (
+    ARK3,
+)
+@testset "Multi-Step Multi-Stage Explicit Integrators" verbose = true begin
+    foreach(explicit_multi_multi_integrators) do scheme
+        errors = zeros(8)
+        dts = zeros(length(errors))
+        dt = 0.2
+        for i in eachindex(errors)
+            dt = dt / 2
+            yn = zeros(Float64, 1, 3)
+            yn[:, 1] .= [y_0]
+            yn[:, 2] .= lambda .* [y_0] .* dt
+            yn[:, 3] .= lambda^2 .* [y_0] .* dt^2
+            y_n = TimeIntegrators.TimeIntegrationSolution(yn, scheme, nothing, 0)
+
+            dts[i] = dt
+            for t in 0.0:dt:t_final-dt
+                TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
+            end
+
+            errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
+        end
+        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+
+        # The rate is computed to 2 decimal places.
+        @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
+    end
+end
 
 end

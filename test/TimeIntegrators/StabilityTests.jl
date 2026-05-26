@@ -80,7 +80,7 @@ const integrators = (
     TimeIntegrators.RALTSON4,
 )
 
-@testset "AmplificationFactorsExplicit" verbose = true begin
+@testset "Explicit Integrators" verbose = true begin
     foreach(integrators) do scheme
         ck_n = TimeIntegrators.initializeScheme(ck_0, scheme)
         TimeIntegrators.timeIntegrate!(ck_n, linear_advection_ode, 0.0, dt)
@@ -93,8 +93,8 @@ const integrators = (
     end
 end
 
-# Known stability functions for implicit schemes. Here, the stability functions are usually
-# not the same per order, so we specify them per integrator.
+# Known stability functions for diagonally implicit schemes. Here, the stability functions
+# are usually not the same per order, so we specify them per integrator.
 const gamma4 = (1 + TimeIntegrators._α_DIRK4) / 2
 const diagonally_implicit_integrators = (
     (TimeIntegrators.BACKWARD_EULER, z -> 1 / (1-z)),
@@ -109,7 +109,7 @@ implicit_linear_advection_ode = TimeIntegrators.define_implicit_linear(
     nothing, -A, nothing, (c, t) -> -A * c
 )
 
-@testset "AmplificationFactorsDiagonallyImplicit" verbose = true begin
+@testset "Diagonally Implicit Integrators" verbose = true begin
     foreach(diagonally_implicit_integrators) do (scheme, exact_stability_function)
         ck_n = TimeIntegrators.initializeScheme(ck_0, scheme)
         TimeIntegrators.timeIntegrate!(ck_n, implicit_linear_advection_ode, 0.0, dt)
@@ -140,14 +140,14 @@ end
 # #     nothing, -A, nothing, (c, t) -> -A * c
 # # )
 
-# @testset "AmplificationFactorsImplicit" verbose = true begin
+# @testset "Amplification Factors Implicit Integrators" verbose = true begin
 #     foreach(implicit_integrators) do (scheme, exact_stability_function)
 #         @show scheme
 #         ck_n = TimeIntegrators.initializeScheme(ck_0, scheme)
 #         TimeIntegrators.timeIntegrate!(ck_n, implicit_linear_advection_ode, 0.0, dt; num_stages=TimeIntegrators.get_num_stages(scheme))
 
 #         # Pick just one factor to test (away from the boundary condition).
-#         amplifaction_factor_scheme = (TimeIntegrators.get_solution(ck_n) ./ ck_0)#[14]
+#         amplifaction_factor_scheme = (TimeIntegrators.get_solution(ck_n) ./ ck_0)#[84]
 #         @show amplifaction_factor_scheme
 #         @test isapprox(
 #             exact_stability_function(z_k), amplifaction_factor_scheme[84], rtol=1e-15

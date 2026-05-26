@@ -36,7 +36,7 @@ c_0 = sinpi.(2.0 .* grid)
 
 linear_advection_ode = TimeIntegrators.define_explicit_ode(discretised_advection_equation)
 
-@testset "ForwardEulerCFL1" verbose = true begin
+@testset "Forward Euler CFL 1 Advection Tests" verbose = true begin
     c_n = TimeIntegrators.initializeScheme(c_0, TimeIntegrators.FORWARD_EULER)
 
     # Pick the end time such that the IC traverses our domain exactly 10 times.

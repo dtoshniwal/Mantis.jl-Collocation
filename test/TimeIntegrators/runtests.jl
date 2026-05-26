@@ -2,13 +2,13 @@ module TimeIntegratorsTests
 
 using Test
 
-@testset verbose=true "AdvectionBasedTests" begin
+@testset verbose=true "Advection-Based Test" begin
     include("AdvectionTests.jl")
 end
-@testset verbose=true "ConvergenceTests" begin
+@testset verbose=true "Convergence Tests" begin
     include("ConvergenceTests.jl")
 end
-@testset verbose=true "StabilityTests" begin
+@testset verbose=true "Amplification Factors Single-Step Multi-Stage" begin
     include("StabilityTests.jl")
 end
 
