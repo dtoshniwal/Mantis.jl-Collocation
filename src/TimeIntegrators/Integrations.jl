@@ -152,26 +152,42 @@ function timeIntegrate!(
     dt::Float64;
     kwargs...,
 ) where {T, S <: AbstractTimeIntegrator}
-    # Calculate the step-derivatives for the current step for the multi-step scheme.
-    num_startup_steps = maximum(y_n.scheme.time_levels)
-    if num_startup_steps >= 0 && get_remaining_startup_steps(y_n) == num_startup_steps
-        calc_step_derivatives!(y_n, ode, dt, t; kwargs...)
-    end
+    remaining_startup_steps = get_remaining_startup_steps(y_n)
+    if remaining_startup_steps > 0
+        num_steps = length(y_n.scheme.time_levels.step_values)
+        num_G = length(y_n.scheme.time_levels.step_derivatives_implicit)
+        num_F = length(y_n.scheme.time_levels.step_derivatives_explicit)
 
-    # Check if we still need to use the startup scheme.
-    if get_remaining_startup_steps(y_n) >= 0
-        if y_n.scheme.time_levels == y_n.startup_scheme.time_levels
-            throw(ArgumentError("The scheme is not a startup scheme"))
+        y_n_startup = y_n.startup_solution
+
+        # We do have to advance the solution using the startup scheme, to ensure that the
+        # solution remains at the expected time level, even if some of the startup steps
+        # are only needed to initialise the step derivatives.
+        ynm1 = get_solution(y_n_startup)
+        timeIntegrate_!(y_n_startup, y_n.startup_scheme, ode, t, dt; kwargs...)
+
+        # Then we initialise the required solutions and stage derivatives. Note these are
+        # all if statements, as we may need all of them at the same time. The first
+        # condition in the if statements always check if we ever need the specific type of
+        # initialisation, while the second condition ensures that we are at the correct
+        # time to initialise the solution or stage derivatives.
+        if num_steps > 0 && remaining_startup_steps - num_steps <= 0
+            index_steps = num_steps + (remaining_startup_steps - num_steps)
+            y_n.solution[:, index_steps] = get_solution(y_n_startup)
         end
-        startup_scheme = get_startup_scheme(y_n)
-        y_old = y_n
-        y_n = initializeScheme(get_solution(y_old), y_old.startup_scheme)
-        shift_steps!(y_old)
-        timeIntegrate_!(y_n, startup_scheme, ode, t, dt; kwargs...)
-        sol = get_solution(y_n)
-        y_n = y_old
-        y_n.solution[:, 1] = sol
-        calc_step_derivatives!(y_n, ode, dt, t + dt; kwargs...)
+        if num_G > 0 && remaining_startup_steps - num_G <= 0
+            index_implicit = num_steps + num_G + (remaining_startup_steps - num_G)
+            y_n.solution[:, index_implicit] .= ode.implicitEvaluate(get_solution(y_n_startup); kwargs...) .* dt
+        end
+        if num_F > 0 && remaining_startup_steps - num_F <= 0
+            index_explicit = num_steps + num_G + num_F + (remaining_startup_steps - num_F)
+            y_n.solution[:, index_explicit] .= ode.explicitEvaluate(ynm1, t; kwargs...) .* dt
+        end
+
+        t += dt
+        y_n.remaining_startup_steps = y_n.remaining_startup_steps - 1
+    else
+        timeIntegrate_!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
     end
 end
 
@@ -223,14 +239,21 @@ function timeIntegrate_!(
     F .= 0.0
     Yi = Vector{eltype(y_n)}(undef, N)
     @views yⁿ = y_n.solution_alocated[:, :]
-
+    # Ti = 0.0
     @inbounds for i in 1:num_stages
         # Calculate the stage value Yi
         Yi .= F * scheme.A[i, :] * dt
-        Yi .+= y_n.solution * scheme.U[i, :]
+        @inbounds for j in 1:num_steps
+            Yi .+= scheme.U[i, j] * y_nm1[:,j]
+        end
+        # for j in 1:num_steps
+        #     Ti += scheme.A[i, j] * dt
+        #     Ti += scheme.U[i, j] * t_nm1[j]
+        # end
 
         # Calculate the stage derivative Fᵢ
         F[:, i] .= ode.explicitEvaluate(Yi, t + scheme.C[i] * dt; kwargs...)
+        # F[:, i] .= ode.explicitEvaluate(Yi, Ti; kwargs...)
     end
 
     # Optimisation when both the last stages are the same as the first step, so we can skip
@@ -364,11 +387,7 @@ function timeIntegrate_!(
     Yᵢ = Vector{eltype(y_n)}(undef, N)
     xᵢ = Vector{eltype(y_n)}(undef, N)
     @views yⁿ = y_n.solution_alocated[:, :]
-    @show size(y_nm1)
-    @show typeof(y_nm1)
     xi = reduce(vcat, y_nm1 for i in 1:num_stages)
-    @show size(xi)
-    @show typeof(xi)
 
     newA = SparseArrays.blockdiag([SparseArrays.sparse(scheme.A * dt) for i in 1:N]...)
     Y = ode.implicitSolve(xi, newA, t + scheme.C[1] * dt; kwargs...)
@@ -466,73 +485,4 @@ function timeIntegrate_!(
     end
 
     return y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
-end
-
-"""
-    shift_steps!(y_n::TimeIntegrationSolution)
-
-Shift the time levels of the solution vector assuming y_n is at index 1 and y_{n-num_steps} is at index num_steps.
-Example:
-- time levels:  [0 1 2 | 0 1 | 0 1]
-- input ->      [y₀ 0 0 | 0 0 | 0 0]
-- t1 init ->    [y₀ 0 0 | G₀ 0 | F₀ 0]
-- t1 shift ->   [0 y₀ 0 | 0 G₀ | 0 F₀]
-- t1 integrate->[y₁ y₀ 0 | 0 G₀ | 0 F₀]
-- t1 step derv->[y₁ y₀ 0 | G₁ G₀ | F₁ F₀]
-- t2 shift ->   [0 y₁ y₀ | 0 G₁ | G₁ F₁]
-- t2 integrate->[y₂ y₁ y₀ | 0 G₁ | G₁ F₁]
-- t2 step derv->[y₂ y₁ y₀ | G₂ G₁ | F₂ F₁]
-
-# Arguments
-- `y_n::TimeIntegrationSolution`: The current solution vector.
-
-# Returns (in-place)
-- `TimeIntegrationSolution`: The updated solution vector after shifting the time levels.
-"""
-function shift_steps!(y_n::TimeIntegrationSolution)
-    return y_n.solution = circshift(y_n.solution, (0, 1))
-end
-
-"""
-    calc_step_derivatives!(y_n::TimeIntegrationSolution, ode::TimeIntegrationOperators, dt::Float64, t::Float64; kwargs...)
-
-Calculate the stage derivatives for the current step for the multi-step scheme.
-
-# Arguments
-- `y_n::TimeIntegrationSolution`: The current solution vector.
-- `ode::TimeIntegrationOperators`: The ODE system operators.
-- `dt::Float64`: The time step.
-- `t::Float64`: The current time.
-- `kwargs...`: Additional arguments passed to the user defined ODE system.
-
-# Returns (in-place)
-- `TimeIntegrationSolution`: The updated solution vector after calculating the stage derivatives.
-"""
-function calc_step_derivatives!(
-    y_n::TimeIntegrationSolution,
-    ode::TimeIntegrationOperators,
-    dt::Float64,
-    t::Float64;
-    kwargs...,
-)
-    curr_step_values = y_n.solution[:, 1]
-    N_step_values = size(y_n.scheme.time_levels.step_values, 1)
-    N_step_derivatives_implicit = size(y_n.scheme.time_levels.step_derivatives_implicit, 1)
-
-    # Calculate stage derivatives implicit (G)
-    if !isempty(y_n.scheme.time_levels.step_derivatives_implicit)
-        start_index = N_step_values + 1
-        y_n.solution[:, start_index] = (
-            ode.implicitSolve(curr_step_values, dt, t; kwargs...) - curr_step_values
-        )
-    end
-
-    # Calculate stage derivatives explicit (F)
-    if !isempty(y_n.scheme.time_levels.step_derivatives_explicit)
-        start_index = N_step_values + N_step_derivatives_implicit + 1
-        y_n.solution[:, start_index] =
-            ode.explicitEvaluate(curr_step_values, t; kwargs...) * dt
-    end
-
-    return y_n.remaining_startup_steps -= 1
 end

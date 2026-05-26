@@ -410,7 +410,7 @@ Solution of the time integrator.
 - `F_alocated::Matrix{NT}`: Pre-allocated memory for calculations.
 - `G_alocated::Matrix{NT}`: Pre-allocated memory for calculations.
 """
-mutable struct TimeIntegrationSolution{T, S, NT}
+mutable struct TimeIntegrationSolution{T, S, NT, ST}
     N::Int
     solution::Matrix{NT}
     scheme::T
@@ -419,14 +419,16 @@ mutable struct TimeIntegrationSolution{T, S, NT}
     solution_alocated::Matrix{NT}
     F_alocated::Matrix{NT}
     G_alocated::Matrix{NT}
+    startup_solution::ST
 
     function TimeIntegrationSolution(
         solution::Matrix{NT},
         scheme::AbstractTimeIntegrator{num_stages, num_steps},
         startup_scheme::Union{Nothing, AbstractTimeIntegrator},
         remaining_startup_steps::Int,
-    ) where {NT, num_stages, num_steps}
-        return new{typeof(scheme), typeof(startup_scheme), NT}(
+        startup_solution::ST=nothing
+    ) where {NT, num_stages, num_steps, ST}
+        return new{typeof(scheme), typeof(startup_scheme), NT, ST}(
             size(solution, 1),
             solution,
             scheme,
@@ -435,11 +437,12 @@ mutable struct TimeIntegrationSolution{T, S, NT}
             similar(solution),
             zeros(NT, size(solution, 1), num_stages),
             zeros(NT, size(solution, 1), num_stages),
+            startup_solution,
         )
     end
 end
 
-Base.eltype(::Type{TimeIntegrationSolution{T, S, NT}}) where {T, S, NT} = NT
+Base.eltype(::Type{TimeIntegrationSolution{T, S, NT, ST}}) where {T, S, NT, ST} = NT
 
 function get_num_variables(sol::TimeIntegrationSolution)
     return sol.N
@@ -459,10 +462,10 @@ function get_remaining_startup_steps(sol::TimeIntegrationSolution)
     return sol.remaining_startup_steps
 end
 function get_F_allocated(sol::TimeIntegrationSolution)
-    return sol.F_alocated
+    return view(sol.F_alocated, :, :)
 end
 function get_G_allocated(sol::TimeIntegrationSolution)
-    return sol.G_alocated
+    return view(sol.G_alocated, :, :)
 end
 
 ### Overloading for convenience
