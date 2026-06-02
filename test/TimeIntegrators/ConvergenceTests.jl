@@ -285,7 +285,7 @@ const ARK3 = TimeIntegrators.Explicit(
     StaticArrays.SVector(1 / 3, 2 / 3, 1.0),
     TimeIntegrators.TimeLevels(
         [0], # y
-        [], # Δt G
+        Int[], # Δt G
         [0, 1],  # Δt F and Δt^2 F'
     ),
     3,
