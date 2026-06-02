@@ -186,8 +186,12 @@ function timeIntegrate!(
 
         t += dt
         y_n.remaining_startup_steps = y_n.remaining_startup_steps - 1
+
+        return nothing
     else
         timeIntegrate_!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
+
+        return nothing
     end
 end
 
@@ -270,7 +274,9 @@ function timeIntegrate_!(
     end
 
     # swich the pointers of y_n.solution and y_n.solution_alocated
-    return y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+    y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+
+    return nothing
 end
 
 """
@@ -345,6 +351,7 @@ function timeIntegrate_!(
     end
 
     y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+
     return nothing
 end
 
@@ -389,9 +396,15 @@ function timeIntegrate_!(
     @views yⁿ = y_n.solution_alocated[:, :]
     xi = reduce(vcat, y_nm1 for i in 1:num_stages)
 
-    newA = SparseArrays.blockdiag([SparseArrays.sparse(scheme.A * dt) for i in 1:N]...)
-    Y = ode.implicitSolve(xi, newA, t + scheme.C[1] * dt; kwargs...)
-    # Y = ode.implicitSolve(xi, scheme.A * dt, t + scheme.C[1] * dt; kwargs...)
+    # newAblocks = ntuple(N) do
+    #     SparseArrays.sparse(scheme.A * dt)
+    # end
+    # newA = SparseArrays.blockdiag([SparseArrays.sparse(scheme.A * dt) for i in 1:N]...)
+
+    # sparse_block = SparseArrays.sparse(Matrix(scheme.A * dt))
+    # newA = SparseArrays.blockdiag((sparse_block for i in 1:N)...)
+    # Y = ode.implicitSolve(xi, newA, t + scheme.C[1] * dt; kwargs...)
+    Y = ode.implicitSolve(xi, scheme.A * dt, t + scheme.C[1] * dt; kwargs...)
 
     @inbounds for i in 1:num_steps
         allG = ode.implicitEvaluate(Y; kwargs...)
@@ -402,6 +415,7 @@ function timeIntegrate_!(
     end
 
     y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+
     return nothing
 end
 
@@ -484,5 +498,7 @@ function timeIntegrate_!(
         @views yⁿ[:, i] .+= y_nm1 * scheme.V[i, :]
     end
 
-    return y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+    y_n.solution, y_n.solution_alocated = y_n.solution_alocated, y_n.solution
+
+    return nothing
 end

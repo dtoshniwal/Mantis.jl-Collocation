@@ -40,8 +40,8 @@ function mapButcherTableauToScheme(
 
     time_levels = TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     )
 
     if is_implicit
@@ -258,8 +258,8 @@ const AB1 = Explicit(
     SVector(0.0),
     TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     1,
 )
@@ -273,7 +273,7 @@ const AB2 = Explicit(
     SVector(0.0),
     TimeLevels(
         [0], # y
-        [], # Δt G
+        Int[], # Δt G
         [1],  # Δt F
     ),
     2,
@@ -288,7 +288,7 @@ const AB3 = Explicit(
     SVector(0.0),
     TimeLevels(
         [0], # y(n)
-        [], # Δt G
+        Int[], # Δt G
         [1, 2],  # Δt F(n-1), Δt F(n-2)
     ),
     3,
@@ -303,7 +303,7 @@ const AB4 = Explicit(
     SVector(0.0),
     TimeLevels(
         [0], # y
-        [], # Δt G
+        Int[], # Δt G
         [1, 2, 3],  # Δt F
     ),
     4,
@@ -321,8 +321,8 @@ const AM0 = DiagonallyImplicit(
     SVector(1.0),
     TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     1,
 )
@@ -337,7 +337,7 @@ const AM1 = DiagonallyImplicit(
     TimeLevels(
         [0], # y
         [0], # Δt G
-        [],  # Δt F
+        Int[],  # Δt F
     ),
     2,
 )
@@ -352,7 +352,7 @@ const AM2 = DiagonallyImplicit(
     TimeLevels(
         [0], # y
         [0, 1], # Δt G
-        [],  # Δt F
+        Int[],  # Δt F
     ),
     3,
 )
@@ -367,7 +367,7 @@ const AM3 = DiagonallyImplicit(
     TimeLevels(
         [0], # y
         [0, 1, 2], # Δt G
-        [],  # Δt F
+        Int[],  # Δt F
     ),
     4,
 )
@@ -382,7 +382,7 @@ const AM4 = DiagonallyImplicit(
     TimeLevels(
         [0], # y
         [0, 1, 2, 3], # Δt G
-        [],  # Δt F
+        Int[],  # Δt F
     ),
     5,
 )
@@ -397,8 +397,8 @@ const BDF1 = DiagonallyImplicit(
     SVector(0.0),
     TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     1,
 )
@@ -412,8 +412,8 @@ const BDF2 = DiagonallyImplicit(
     SVector(1.0),
     TimeLevels(
         [0, 1], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     2,
 )
@@ -428,8 +428,8 @@ const BDF3 = DiagonallyImplicit(
     SVector(1.0),
     TimeLevels(
         [0, 1, 2], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     3,
 )
@@ -443,8 +443,8 @@ const BDF4 = DiagonallyImplicit(
     SVector(1.0),
     TimeLevels(
         [0, 1, 2, 3], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     4,
 )
@@ -463,8 +463,8 @@ const BACKWARD_FORWARD_EULER = IMEX(
     SVector(0.0), # C Explicit
     TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     1,
 )
@@ -481,8 +481,8 @@ const MIDPOINT_IMEX = IMEX(
     SVector(0.0, 1/2), # C Explicit
     TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     2,
 )
@@ -499,8 +499,8 @@ const RK3_IMEX = IMEX(
     SVector(0.0, _γ, 1 - _γ), # C Explicit
     TimeLevels(
         [0], # y
-        [], # Δt G
-        [],  # Δt F
+        Int[], # Δt G
+        Int[],  # Δt F
     ),
     3,
 )
@@ -538,7 +538,7 @@ const SSSS2 = IMEX(
     SVector(0.0),
     TimeLevels(
         [0, 1], # y
-        [], # Δt G
+        Int[], # Δt G
         [0, 1],  # Δt F
     ),
     2,

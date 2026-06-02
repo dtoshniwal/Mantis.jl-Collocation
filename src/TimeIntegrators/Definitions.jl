@@ -119,9 +119,9 @@ end
 function define_implicit_linear(M::Nothing, K::AbstractMatrix{T}, F::Nothing, g) where {T}
     return define_implicit_ode((x, λ, t) -> (I - λ * K) \ x, g)
 end
-function define_implicit_linear(M::Nothing, K, F::Nothing, g)
-    return define_implicit_ode((x, λ, t) -> (I - λ * K) \ x, g)
-end
+# function define_implicit_linear(M::Nothing, K, F::Nothing, g)
+#     return define_implicit_ode((x, λ, t) -> (I - λ * K) \ x, g)
+# end
 function define_implicit_linear(
     M::Nothing, K::AbstractMatrix{T}, F::AbstractVector{T}, g
 ) where {T}
@@ -420,6 +420,7 @@ mutable struct TimeIntegrationSolution{T, S, NT, ST}
     F_alocated::Matrix{NT}
     G_alocated::Matrix{NT}
     startup_solution::ST
+    #stage_values::Vector{NT}
 
     function TimeIntegrationSolution(
         solution::Matrix{NT},
@@ -438,6 +439,7 @@ mutable struct TimeIntegrationSolution{T, S, NT, ST}
             zeros(NT, size(solution, 1), num_stages),
             zeros(NT, size(solution, 1), num_stages),
             startup_solution,
+            #zeros(NT, size(solution, 1)),
         )
     end
 end
