@@ -3,9 +3,48 @@
 While the discretization of the weak form of the Poisson problem presented in the previous section is relatively straightforward, the same cannot be said for mixed weak problems associated to PDEs such as the (scalar/vector) Poisson problem, the Maxwell eigenvalue problem, or the incompressible (Navier-)Stokes equations.
 FEEC provides a unified framework for the discretization of such problems by providing a systematic abstract framework which can be used to derive stable finite element discretizations for a wide class of mixed problems.
 
-## Add some examples of failures here
+## A motivating example: Vector Laplacian on an L-shaped domain
 
-...
+To motivate why ad hoc discretizations can fail, and why FEEC provides the right framework for designing stable ones, consider the **vector Laplacian** problem on an L-shaped domain $\Omega \subset \mathbb{R}^2$: find $\mathbf{u}$ such that
+
+```math
+-\Delta \mathbf{u} = \mathbf{f} \text{ in } \Omega\;,\\\mathbf{u}.\mathbf{n} = 0 \text{ on } \partial\Omega\;,\\
+\nabla\times \mathbf{u} = 0 \text{ on } \partial\Omega\;.
+```
+
+### The primal formulation and its failure
+
+A natural first attempt is to perform a conforming discretization of the primal weak form: find $\mathbf{u}_h \in V_h \subset H(\text{curl}; \Omega) \cap \mathring{H}(\text{div}; \Omega)$ such that
+
+```math
+(\nabla \cdot \mathbf{u}_h, \nabla \cdot \mathbf{v}_h) + (\nabla \times \mathbf{u}_h, \nabla \times \mathbf{v}_h) = (\mathbf{f}, \mathbf{v}_h) \quad \forall \mathbf{v}_h \in V_h\;,
+```
+where $V_h$ is some finite dimensional space of  piecewise-polynomial vector fields (e.g., continuous piecewise polynomials), $H(\text{curl};\Omega)$ is the space of vector fields with square-integrable curls, and $\mathring{H}(\text{div};\Omega)$ is the space of vector fields with square-integrable divergences and vanishing (normal) trace.
+
+It is well known that such a discretization fails in general, for instance, on the L-shaped domain $\Omega$.
+In particular, the above leads to a discrete solution that lives in a finite dimensional subspace of a closed, proper subspace of $H(\text{curl}; \Omega) \cap \mathring{H}(\text{div}; \Omega)$, leading to spurious solutions that fail to converge to the true solution.
+
+![Spurious solution from the primal formulation on the L-shaped domain](../assets/Theory/LshapeWrong-1.pdf)
+
+### The mixed formulation and its success
+
+The correct approach, guided by FEEC, is to use a **mixed formulation**: find $(\sigma_h, \mathbf{u}_h) \in V_h^0 \times V_h^1$ such that
+
+```math
+    \begin{align*}
+        (\sigma_h, \tau_h) - (\mathbf{u}_h, \nabla \tau_h) &= 0 \quad \forall \tau_h \in V_h^0,\\
+        (\nabla \sigma_h, \mathbf{v}_h) + (\nabla \times \mathbf{u}_h, \nabla \times \mathbf{v}_h) &= (\mathbf{f}, \mathbf{v}_h) \quad \forall \mathbf{v}_h \in V_h^1,
+    \end{align*}
+```
+where $V_h^0$ is an $H^1$-conforming space and $V_h^1$ is an $H(\text{curl})$-conforming space (e.g., Nédélec edge elements, or B-spline generalizations of the edge elements).
+The spaces $V_h^0$ and $V_h^1$ need to be chosen in a "compatible" manner (in the sense described in the following sections), but when they are, the discrete solution converges to the true solution and we get away from the problems associated to the primal formulation.
+Note that this is true even when $V_h^1$ is an appropriately chosen $H^1$-conforming space (e.g., that of $C^1$ smooth B-spline edge elements).
+
+
+![Correct solution from the mixed FEEC formulation on the L-shaped domain](../assets/Theory/LshapeFEEC-1.pdf)
+
+This example illustrates the central lesson of FEEC: the choice of discrete spaces must respect the structure underlying the PDEs being solved.
+For the scalar and vector Laplacians in three dimensions, this structure is encoded in the de Rham complex, introduced in the following.
 
 ## The de Rham Complex in 3-dimensions
 
@@ -110,3 +149,15 @@ FEEC then states that, if there exist bounded cochain projection operators $\pi_
 ```
 
 This is a very powerful recipe that can be applied to Hilbert complexes that are more general than the de Rham complex, and used to construct stable finite element discretizations for a wide class of associated problems.
+
+## Differential forms and generalization to arbitrary dimensions
+
+The vector-proxy presentation above is convenient in three dimensions, but the underlying structure extends naturally to domains $\Omega \subset \mathbb{R}^n$ for any $n$. The proper language for this generalization is that of **differential forms**: loosely, a $k$-form is an object that can be integrated over $k$-dimensional surfaces, and the exterior derivative $d$ generalizes the classical operators $\nabla$, $\nabla \times$, and $\nabla \cdot$ in a dimension-independent way. The de Rham complex then takes the form
+
+```math
+0 \xrightarrow{} H\Lambda^0(\Omega) \xrightarrow{d} H\Lambda^1(\Omega) \xrightarrow{d} \cdots \xrightarrow{d} H\Lambda^n(\Omega) \xrightarrow{} 0\;,
+```
+
+where $H\Lambda^k(\Omega)$ denotes the space of $k$-forms with square-integrable exterior derivatives. For a precise treatment we refer the reader to [Arnold2010].
+
+In dimensions $n \leq 3$, the spaces $H\Lambda^k(\Omega)$ are isomorphic to the familiar vector-proxy spaces: $H\Lambda^0 \cong H^1$, $H\Lambda^1 \cong H(\text{curl})$, $H\Lambda^2 \cong H(\text{div})$, and $H\Lambda^3 \cong L^2$, with the exterior derivative corresponding to $\nabla$, $\nabla\times$, and $\nabla\cdot$ respectively. `Mantis` adopts the differential-form language throughout in order to emphasize this generality and to make the dimension-independent structure of the library explicit.
