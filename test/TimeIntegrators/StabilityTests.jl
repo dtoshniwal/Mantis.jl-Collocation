@@ -24,11 +24,11 @@ const L = 1.0
 const velocity = 0.1
 const dt = dx / velocity  # gives CFL = 1
 const grid = 0.0:dx:L
-const A = (velocity / dx) * SparseArrays.spdiagm(
-    0 => ones(length(grid)), -1 => -1 .* ones(length(grid)-1)
-)
+const A =
+    (velocity / dx) *
+    SparseArrays.spdiagm(0 => ones(length(grid)), -1 => -1 .* ones(length(grid)-1))
 # Set periodic boundary conditions.
-A[1,end] = -(velocity / dx)
+A[1, end] = -(velocity / dx)
 
 function discretised_advection_equation(c, t)
     return -A * c
@@ -37,8 +37,6 @@ end
 c_0 = sinpi.(2.0 .* grid)
 
 linear_advection_ode = TimeIntegrators.define_explicit_ode(discretised_advection_equation)
-
-
 
 # Amplification factor analysis ------------------------------------------------------------
 const k = 2 * pi  # wavenumber
@@ -88,7 +86,9 @@ const integrators = (
         # Pick just one factor to test (away from the boundary condition).
         amplifaction_factor_scheme = (TimeIntegrators.get_solution(ck_n) ./ ck_0)[14]
         @test isapprox(
-            exact_stability(z_k, TimeIntegrators.get_order(scheme)), amplifaction_factor_scheme, rtol=1e-15
+            exact_stability(z_k, TimeIntegrators.get_order(scheme)),
+            amplifaction_factor_scheme,
+            rtol=1e-15,
         )
     end
 end
@@ -100,9 +100,34 @@ const diagonally_implicit_integrators = (
     (TimeIntegrators.BACKWARD_EULER, z -> 1 / (1-z)),
     (TimeIntegrators.RADAU_IA_1, z -> 1 / (1-z)),
     (TimeIntegrators.IMPLICIT_MIDPOINT, z -> (1 + 1/2 * z) / (1 - 1/2*z)),
-    (TimeIntegrators.DIRK2, z -> (1 + (1 - 2*TimeIntegrators._α_DIRK2)z + (TimeIntegrators._α_DIRK2^2 - 2*TimeIntegrators._α_DIRK2 + 1/2) * z^2) / (1 - TimeIntegrators._α_DIRK2*z)^2),
-    (TimeIntegrators.DIRK3, z -> (1 + (1 - 2*(1/2 + sqrt(3)/6))z + ((1/2 + sqrt(3)/6)^2 - 2*(1/2 + sqrt(3)/6) + 1/2) * z^2) / (1 - (1/2 + sqrt(3)/6)*z)^2),
-    (TimeIntegrators.DIRK4, z -> (1 + (1 - 3*gamma4)z + (3*gamma4^2 - 3*gamma4 + 1/2) * z^2 + (-gamma4^3 + 3*gamma4^2 - 3/2*gamma4 + 1/6) * z^3) / (1 - gamma4*z)^3),
+    (
+        TimeIntegrators.DIRK2,
+        z ->
+            (
+                1 +
+                (1 - 2*TimeIntegrators._α_DIRK2)z +
+                (TimeIntegrators._α_DIRK2^2 - 2*TimeIntegrators._α_DIRK2 + 1/2) * z^2
+            ) / (1 - TimeIntegrators._α_DIRK2*z)^2,
+    ),
+    (
+        TimeIntegrators.DIRK3,
+        z ->
+            (
+                1 +
+                (1 - 2*(1/2 + sqrt(3)/6))z +
+                ((1/2 + sqrt(3)/6)^2 - 2*(1/2 + sqrt(3)/6) + 1/2) * z^2
+            ) / (1 - (1/2 + sqrt(3)/6)*z)^2,
+    ),
+    (
+        TimeIntegrators.DIRK4,
+        z ->
+            (
+                1 +
+                (1 - 3*gamma4)z +
+                (3*gamma4^2 - 3*gamma4 + 1/2) * z^2 +
+                (-gamma4^3 + 3*gamma4^2 - 3/2*gamma4 + 1/6) * z^3
+            ) / (1 - gamma4*z)^3,
+    ),
 )
 
 implicit_linear_advection_ode = TimeIntegrators.define_implicit_linear(
@@ -154,6 +179,5 @@ end
 #         )
 #     end
 # end
-
 
 end

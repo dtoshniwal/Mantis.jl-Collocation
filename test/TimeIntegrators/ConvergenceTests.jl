@@ -35,7 +35,7 @@ test_ode_implicit = TimeIntegrators.define_implicit_ode(implicitSolve, x -> lamb
 test_ode_imex = TimeIntegrators.define_imex_ode(
     (yn, t) -> 0.5 * lambda * yn,  # Explcit evaluation
     (x, h, t) -> (LinearAlgebra.I - 0.5 * h * lambda) \ x,  # Implicit solver
-    x -> 0.5 * lambda * x  # Implicit evaluate
+    x -> 0.5 * lambda * x,  # Implicit evaluate
 )
 
 const explicit_integrators = (
@@ -63,13 +63,16 @@ const explicit_integrators = (
             y_n = TimeIntegrators.initializeScheme([y_0], scheme)
             dt = dt / 2
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
@@ -96,13 +99,16 @@ const explicit_multi_step_integrators = (
             end
             dt = dt / 2
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
@@ -132,13 +138,16 @@ const implicit_integrators = (
             y_n = TimeIntegrators.initializeScheme([y_0], scheme)
             dt = dt / 2
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         if TimeIntegrators.get_order(scheme) > 4
@@ -183,13 +192,16 @@ const implicit_multi_step_integrators = (
             end
 
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         if TimeIntegrators.get_order(scheme) > 4
@@ -220,14 +232,17 @@ const one_step_imex_integrators = (
             y_n = TimeIntegrators.initializeScheme([y_0], scheme)
             dt = dt / 2
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
 
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
@@ -254,20 +269,22 @@ const multi_step_imex_integrators = (
 
             dt = dt / 2
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
 
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)
     end
 end
-
 
 # Combined multi-step multi-stage ----------------------------------------------------------
 
@@ -278,10 +295,10 @@ end
 # second derivative which is not accounted for in the available initialisations. As a
 # result, this scheme is not part of Mantis.
 const ARK3 = TimeIntegrators.Explicit(
-    StaticArrays.SMatrix{3,3}(0.0, 1/2, 0.0, 0.0, 0.0, 3/4, 0.0, 0.0, 0.0), # A
-    StaticArrays.SMatrix{3,3}(0.0, 0.0, 3.0, 3/4, 0.0, -3.0, 0.0, 1.0, 2.0), # B
-    StaticArrays.SMatrix{3,3}(1.0, 1.0, 1.0, 1/3, 1/6, 1/4, 1/18, 1/18, 0.0), # U
-    StaticArrays.SMatrix{3,3}(1.0, 0.0, 0.0, 1/4, 0, -2.0, 0.0, 0.0, 0.0), # V
+    StaticArrays.SMatrix{3, 3}(0.0, 1/2, 0.0, 0.0, 0.0, 3/4, 0.0, 0.0, 0.0), # A
+    StaticArrays.SMatrix{3, 3}(0.0, 0.0, 3.0, 3/4, 0.0, -3.0, 0.0, 1.0, 2.0), # B
+    StaticArrays.SMatrix{3, 3}(1.0, 1.0, 1.0, 1/3, 1/6, 1/4, 1/18, 1/18, 0.0), # U
+    StaticArrays.SMatrix{3, 3}(1.0, 0.0, 0.0, 1/4, 0, -2.0, 0.0, 0.0, 0.0), # V
     StaticArrays.SVector(1 / 3, 2 / 3, 1.0),
     TimeIntegrators.TimeLevels(
         [0], # y
@@ -290,9 +307,7 @@ const ARK3 = TimeIntegrators.Explicit(
     ),
     3,
 )
-const explicit_multi_multi_integrators = (
-    ARK3,
-)
+const explicit_multi_multi_integrators = (ARK3,)
 @testset "Multi-Step Multi-Stage Explicit Integrators" verbose = true begin
     foreach(explicit_multi_multi_integrators) do scheme
         errors = zeros(8)
@@ -307,13 +322,16 @@ const explicit_multi_multi_integrators = (
             y_n = TimeIntegrators.TimeIntegrationSolution(yn, scheme, nothing, 0)
 
             dts[i] = dt
-            for t in 0.0:dt:t_final-dt
+            for t in 0.0:dt:(t_final - dt)
                 TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
         end
-        rates = [log(errors[i]/errors[i+1])/(log(dts[i]/dts[i+1])) for i in eachindex(errors)[1:end-1]]
+        rates = [
+            log(errors[i]/errors[i + 1])/(log(dts[i]/dts[i + 1])) for
+            i in eachindex(errors)[1:(end - 1)]
+        ]
 
         # The rate is computed to 2 decimal places.
         @test isapprox(rates[end], TimeIntegrators.get_order(scheme), rtol=1e-2)

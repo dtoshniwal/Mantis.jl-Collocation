@@ -12,9 +12,7 @@ Function that defines the Newton solver for a given ODE
 - `jacobian::Function`: Jacobian of the ODE with signature
     func(y::Vector{Float64}, t::Float64)::Matrix{Float64}
 """
-function define_newton_solver_ode(
-    ode; eps::Float64=1e-15, iter::Int=10, jacobian::Function
-)
+function define_newton_solver_ode(ode; eps::Float64=1e-15, iter::Int=10, jacobian::Function)
     return define_implicit_ode(
         (x, λ, t) -> _newton_solve(ode, jacobian, x, λ, t; eps=eps, iter=iter)
     )
@@ -33,9 +31,7 @@ Function that defines the Picard solver for a given ODE
 - `iter::Int64=10` : Maximum number of iterations
 """
 function define_picard_solver_ode(ode; eps::Float64=1e-15, iter::Int64=10)
-    return define_implicit_ode(
-        (x, λ, t) -> _picard_solve(ode, x, λ, t; eps=eps, iter=iter)
-    )
+    return define_implicit_ode((x, λ, t) -> _picard_solve(ode, x, λ, t; eps=eps, iter=iter))
 end
 
 """

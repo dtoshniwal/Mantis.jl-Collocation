@@ -47,7 +47,9 @@ function mapButcherTableauToScheme(
     if is_implicit
         return Implicit(A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order)
     elseif is_diagonally_implicit
-        return DiagonallyImplicit(A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order)
+        return DiagonallyImplicit(
+            A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order
+        )
     else
         return Explicit(A, SMatrix{1, num_stages}(B'), U, V, C, time_levels, order)
     end
@@ -60,25 +62,25 @@ end
 
 # order 1
 const FORWARD_EULER = mapButcherTableauToScheme(
-    SMatrix{1,1}(0.0), SVector(1.0), SVector(0.0), 1
+    SMatrix{1, 1}(0.0), SVector(1.0), SVector(0.0), 1
 )
 # order 2
 const EXPLICIT_MIDPOINT = mapButcherTableauToScheme(
-    SMatrix{2,2}(0.0, 1/2, 0.0, 0.0), SVector(0.0, 1.0), SVector(0.0, 1 / 2), 2
+    SMatrix{2, 2}(0.0, 1/2, 0.0, 0.0), SVector(0.0, 1.0), SVector(0.0, 1 / 2), 2
 )
 
 # order 2
 const HEUN2 = mapButcherTableauToScheme(
-    SMatrix{2,2}(0.0, 1.0, 0.0, 0.0), SVector(1 / 2, 1 / 2), SVector(0.0, 1.0), 2
+    SMatrix{2, 2}(0.0, 1.0, 0.0, 0.0), SVector(1 / 2, 1 / 2), SVector(0.0, 1.0), 2
 )
 # order 2
 const RALSTON2 = mapButcherTableauToScheme(
-    SMatrix{2,2}(0.0, 2/3, 0.0, 0.0), SVector(1 / 4, 3 / 4), SVector(0.0, 2 / 3), 2
+    SMatrix{2, 2}(0.0, 2/3, 0.0, 0.0), SVector(1 / 4, 3 / 4), SVector(0.0, 2 / 3), 2
 )
 
 # order 3
 const HEUN3 = mapButcherTableauToScheme(
-    SMatrix{3,3}(0.0, 1/3, 0.0, 0.0, 0.0, 2/3, 0.0, 0.0, 0.0),
+    SMatrix{3, 3}(0.0, 1/3, 0.0, 0.0, 0.0, 2/3, 0.0, 0.0, 0.0),
     SVector(1 / 4, 0.0, 3 / 4),
     SVector(0.0, 1 / 3, 2 / 3),
     3,
@@ -86,7 +88,7 @@ const HEUN3 = mapButcherTableauToScheme(
 
 # order 3
 const RK3 = mapButcherTableauToScheme(
-    SMatrix{3,3}(0.0, 1/2, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0),
+    SMatrix{3, 3}(0.0, 1/2, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0),
     SVector(1 / 6, 2 / 3, 1 / 6),
     SVector(0.0, 1 / 2, 1.0),
     3,
@@ -94,7 +96,7 @@ const RK3 = mapButcherTableauToScheme(
 
 # order 3
 const RALTSON3 = mapButcherTableauToScheme(
-    SMatrix{3,3}(0.0, 1/2, 0.0, 0.0, 0.0, 3/4, 0.0, 0.0, 0.0),
+    SMatrix{3, 3}(0.0, 1/2, 0.0, 0.0, 0.0, 3/4, 0.0, 0.0, 0.0),
     SVector(2 / 9, 1 / 3, 4 / 9),
     SVector(0.0, 1 / 2, 3 / 4),
     3,
@@ -103,7 +105,7 @@ const RALTSON3 = mapButcherTableauToScheme(
 # order 3
 # Van der Houwen's/Wray's third-order method
 const VDHW3 = mapButcherTableauToScheme(
-    SMatrix{3,3}(0.0, 8/15, 1/4, 0.0, 0.0, 5/12, 0.0, 0.0, 0.0),
+    SMatrix{3, 3}(0.0, 8/15, 1/4, 0.0, 0.0, 5/12, 0.0, 0.0, 0.0),
     SVector(1 / 4, 0, 3 / 4),
     SVector(0.0, 8 / 15, 2 / 3),
     3,
@@ -112,7 +114,7 @@ const VDHW3 = mapButcherTableauToScheme(
 # order 3
 # Third-order Strong Stability Preserving Runge-Kutta
 const SSPRK3 = mapButcherTableauToScheme(
-    SMatrix{3,3}(0.0, 1.0, 1/4, 0.0, 0.0, 1/4, 0.0, 0.0, 0.0),
+    SMatrix{3, 3}(0.0, 1.0, 1/4, 0.0, 0.0, 1/4, 0.0, 0.0, 0.0),
     SVector(1 / 6, 1 / 6, 2 / 3),
     SVector(0.0, 1.0, 1 / 2),
     3,
@@ -120,7 +122,7 @@ const SSPRK3 = mapButcherTableauToScheme(
 
 # order 4
 const RK4 = mapButcherTableauToScheme(
-    SMatrix{4,4}(
+    SMatrix{4, 4}(
         0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0
     ),
     SVector(1 / 6, 1 / 3, 1 / 3, 1 / 6),
@@ -131,7 +133,7 @@ const RK4 = mapButcherTableauToScheme(
 # order 4
 # 3/8-rule fourth-order method
 const RK4_3_8 = mapButcherTableauToScheme(
-    SMatrix{4,4}(
+    SMatrix{4, 4}(
         0.0, 1/3, -1/3, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0
     ),
     SVector(1 / 8, 3 / 8, 3 / 8, 1 / 8),
@@ -141,7 +143,7 @@ const RK4_3_8 = mapButcherTableauToScheme(
 
 # order 4
 const RALTSON4 = mapButcherTableauToScheme(
-    SMatrix{4,4}(
+    SMatrix{4, 4}(
         0.0,
         2/5,
         (-2889 + 1428*sqrt(5))/1024,
@@ -173,30 +175,35 @@ const RALTSON4 = mapButcherTableauToScheme(
 
 # order 1
 const BACKWARD_EULER = mapButcherTableauToScheme(
-    SMatrix{1,1}(1.0), SVector(1.0), SVector(1.0), 1
+    SMatrix{1, 1}(1.0), SVector(1.0), SVector(1.0), 1
 )
 
 const RADAU_IA_1 = mapButcherTableauToScheme(
-    SMatrix{1,1}(1.0), SVector(1.0), SVector(0.0), 1
+    SMatrix{1, 1}(1.0), SVector(1.0), SVector(0.0), 1
 )
 
 # order 2
 const IMPLICIT_MIDPOINT = mapButcherTableauToScheme(
-    SMatrix{1,1}(0.5), SVector(1.0), SVector(1 / 2), 2
+    SMatrix{1, 1}(0.5), SVector(1.0), SVector(1 / 2), 2
 )
 
 # order 2
-# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer. Anal., 14(6):1006–1021, 1977
+# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer.
+# Anal., 14(6):1006–1021, 1977
 const _α_DIRK2 = 1 - sqrt(2)/2
 const DIRK2 = mapButcherTableauToScheme(
-    SMatrix{2,2}(_α_DIRK2, 1-_α_DIRK2, 0.0, _α_DIRK2), SVector(1-_α_DIRK2, _α_DIRK2), SVector(_α_DIRK2, 1), 2
+    SMatrix{2, 2}(_α_DIRK2, 1-_α_DIRK2, 0.0, _α_DIRK2),
+    SVector(1-_α_DIRK2, _α_DIRK2),
+    SVector(_α_DIRK2, 1),
+    2,
 )
 
 # order 3
 # Crouzeix's two-stage, 3rd order Diagonally Implicit Runge–Kutta method:
-# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer. Anal., 14(6):1006–1021, 1977
+# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer.
+# Anal., 14(6):1006–1021, 1977
 const DIRK3 = mapButcherTableauToScheme(
-    SMatrix{2,2}(1/2 + sqrt(3)/6, -sqrt(3)/3, 0.0, 1/2+sqrt(3)/6),
+    SMatrix{2, 2}(1/2 + sqrt(3)/6, -sqrt(3)/3, 0.0, 1/2+sqrt(3)/6),
     SVector(1 / 2, 1 / 2),
     SVector(1 / 2 + sqrt(3) / 6, 1 / 2 - sqrt(3) / 6),
     3,
@@ -204,15 +211,26 @@ const DIRK3 = mapButcherTableauToScheme(
 
 # order 3
 const RADAU_IA_3 = mapButcherTableauToScheme(
-    SMatrix{2,2}(1/4, 1/4, -1/4, 5/12), SVector(1 / 4, 3 / 4), SVector(0, 2 / 3), 3
+    SMatrix{2, 2}(1/4, 1/4, -1/4, 5/12), SVector(1 / 4, 3 / 4), SVector(0, 2 / 3), 3
 )
 
 # order 4
 # Crouzeix's three-stage, 4th order Diagonally Implicit Runge–Kutta method:
-# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer. Anal., 14(6):1006–1021, 1977
+# R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer.
+# Anal., 14(6):1006–1021, 1977
 const _α_DIRK4 = 2 / sqrt(3) * cos(pi / 18)
 const DIRK4 = mapButcherTableauToScheme(
-    SMatrix{3,3}((1+_α_DIRK4)/2, -_α_DIRK4/2, 1+_α_DIRK4, 0.0, (1+_α_DIRK4)/2, -(1.0 + 2*_α_DIRK4), 0.0, 0.0, (1+_α_DIRK4)/2),
+    SMatrix{3, 3}(
+        (1+_α_DIRK4)/2,
+        -_α_DIRK4/2,
+        1+_α_DIRK4,
+        0.0,
+        (1+_α_DIRK4)/2,
+        -(1.0 + 2*_α_DIRK4),
+        0.0,
+        0.0,
+        (1+_α_DIRK4)/2,
+    ),
     SVector(1 / (6 * _α_DIRK4^2), 1.0 - 1 / (3 * _α_DIRK4^2), 1 / (6 * _α_DIRK4^2)),
     SVector((1 + _α_DIRK4) / 2, 1 / 2, (1 - _α_DIRK4) / 2),
     4,
@@ -220,7 +238,7 @@ const DIRK4 = mapButcherTableauToScheme(
 
 # order 4
 const GAUSS_LEGENDRE_4 = mapButcherTableauToScheme(
-    SMatrix{2,2}(1/4, 1/4+sqrt(3)/6, 1/4-sqrt(3)/6, 1/4),
+    SMatrix{2, 2}(1/4, 1/4+sqrt(3)/6, 1/4-sqrt(3)/6, 1/4),
     SVector(1 / 2, 1 / 2),
     SVector(1 / 2 - sqrt(3) / 6, 1 / 2 + sqrt(3) / 6),
     4,
@@ -228,7 +246,7 @@ const GAUSS_LEGENDRE_4 = mapButcherTableauToScheme(
 
 # order 6
 const GAUSS_LEGENDRE_6 = mapButcherTableauToScheme(
-    SMatrix{3,3}(
+    SMatrix{3, 3}(
         5/36,
         5 / 36+sqrt(15) / 24,
         5 / 36+sqrt(15) / 30,
@@ -251,10 +269,10 @@ const GAUSS_LEGENDRE_6 = mapButcherTableauToScheme(
 # Adams-Bashforth
 # yₙ = yₙ₋₁ + Δt f(yₙ₋₁)
 const AB1 = Explicit(
-    SMatrix{1,1}(0.0), # A
-    SMatrix{1,1}(1.0), # B
-    SMatrix{1,1}(1.0), # U
-    SMatrix{1,1}(1.0), # V
+    SMatrix{1, 1}(0.0), # A
+    SMatrix{1, 1}(1.0), # B
+    SMatrix{1, 1}(1.0), # U
+    SMatrix{1, 1}(1.0), # V
     SVector(0.0),
     TimeLevels(
         [0], # y
@@ -266,10 +284,10 @@ const AB1 = Explicit(
 
 # yₙ = yₙ₋₁ + Δt (3/2 f(yₙ₋₁) - 1/2 f(yₙ₋₂))
 const AB2 = Explicit(
-    SMatrix{1,1}(0.0), # A
-    SMatrix{2,1}(3/2, 1.0), # B
-    SMatrix{1,2}(1.0, 0.0), # U
-    SMatrix{2,2}(1.0, 0.0, -1/2, 0.0), # V
+    SMatrix{1, 1}(0.0), # A
+    SMatrix{2, 1}(3/2, 1.0), # B
+    SMatrix{1, 2}(1.0, 0.0), # U
+    SMatrix{2, 2}(1.0, 0.0, -1/2, 0.0), # V
     SVector(0.0),
     TimeLevels(
         [0], # y
@@ -281,10 +299,10 @@ const AB2 = Explicit(
 
 # y(n+1)   = y(n) + Δt (23/12 f(yₙ) - 4/3 f(yₙ₋₁) + 5/12 f(yₙ₋₂))
 const AB3 = Explicit(
-    SMatrix{1,1}(0.0), # A
-    SMatrix{3,1}(23/12, 1.0, 0.0), # B
-    SMatrix{1,3}(1.0, 0.0, 0.0), # U
-    SMatrix{3,3}(1.0, 0.0, 0.0, -16/12, 0.0, 1.0, 5/12, 0.0, 0.0), # V
+    SMatrix{1, 1}(0.0), # A
+    SMatrix{3, 1}(23/12, 1.0, 0.0), # B
+    SMatrix{1, 3}(1.0, 0.0, 0.0), # U
+    SMatrix{3, 3}(1.0, 0.0, 0.0, -16/12, 0.0, 1.0, 5/12, 0.0, 0.0), # V
     SVector(0.0),
     TimeLevels(
         [0], # y(n)
@@ -296,10 +314,27 @@ const AB3 = Explicit(
 
 # yₙ = yₙ₋₁ + Δt (55/24 f(yₙ₋₁) - 59/24 f(yₙ₋₂) + 37/24 f(yₙ₋₃) - 9/24 f(yₙ₋₄))
 const AB4 = Explicit(
-    SMatrix{1,1}(0.0), # A
-    SMatrix{4,1}(55/24, 1.0, 0.0, 0.0), # B
-    SMatrix{1,4}(1.0, 0.0, 0.0, 0.0), # U
-    SMatrix{4,4}(1.0, 0.0, 0.0, 0.0, -59/24, 0.0, 1.0, 0.0, 37/24, 0.0, 0.0, 1.0, -9/24, 0.0, 0.0, 0.0), # V
+    SMatrix{1, 1}(0.0), # A
+    SMatrix{4, 1}(55/24, 1.0, 0.0, 0.0), # B
+    SMatrix{1, 4}(1.0, 0.0, 0.0, 0.0), # U
+    SMatrix{4, 4}(
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        -59/24,
+        0.0,
+        1.0,
+        0.0,
+        37/24,
+        0.0,
+        0.0,
+        1.0,
+        -9/24,
+        0.0,
+        0.0,
+        0.0,
+    ), # V
     SVector(0.0),
     TimeLevels(
         [0], # y
@@ -314,10 +349,10 @@ const AB4 = Explicit(
 # Adams-Moulton
 # yₙ = yₙ₋₁ + Δt g(yₙ)
 const AM0 = DiagonallyImplicit(
-    SMatrix{1,1}(1.0), # A
-    SMatrix{1,1}(1.0), # B
-    SMatrix{1,1}(1.0), # U
-    SMatrix{1,1}(1.0), # V
+    SMatrix{1, 1}(1.0), # A
+    SMatrix{1, 1}(1.0), # B
+    SMatrix{1, 1}(1.0), # U
+    SMatrix{1, 1}(1.0), # V
     SVector(1.0),
     TimeLevels(
         [0], # y
@@ -329,10 +364,10 @@ const AM0 = DiagonallyImplicit(
 
 # yₙ = yₙ₋₁ + Δt (1/2 g(yₙ) + 1/2 g(yₙ₋₁))
 const AM1 = DiagonallyImplicit(
-    SMatrix{1,1}(0.5), # A
-    SMatrix{2,1}(0.5, 1.0), # B
-    SMatrix{1,2}(1.0, 0.5), # U
-    SMatrix{2,2}(1.0, 0.0, 0.5, 0.0), # V
+    SMatrix{1, 1}(0.5), # A
+    SMatrix{2, 1}(0.5, 1.0), # B
+    SMatrix{1, 2}(1.0, 0.5), # U
+    SMatrix{2, 2}(1.0, 0.0, 0.5, 0.0), # V
     SVector(1.0),
     TimeLevels(
         [0], # y
@@ -342,12 +377,12 @@ const AM1 = DiagonallyImplicit(
     2,
 )
 
-# # yₙ = yₙ₋₁ + Δt (5/12 g(yₙ) + 8/12 g(yₙ₋₁) - 1/12 g(yₙ₋₂))
+# yₙ = yₙ₋₁ + Δt (5/12 g(yₙ) + 8/12 g(yₙ₋₁) - 1/12 g(yₙ₋₂))
 const AM2 = DiagonallyImplicit(
-    SMatrix{1,1}(5/12), # A
-    SMatrix{3,1}(5/12, 1.0, 0.0), # B
-    SMatrix{1,3}(1.0, 8/12, -1/12), # U
-    SMatrix{3,3}(1.0, 0.0, 0.0, 8/12, 0.0, 1.0, -1/12, 0.0, 0.0), # V
+    SMatrix{1, 1}(5/12), # A
+    SMatrix{3, 1}(5/12, 1.0, 0.0), # B
+    SMatrix{1, 3}(1.0, 8/12, -1/12), # U
+    SMatrix{3, 3}(1.0, 0.0, 0.0, 8/12, 0.0, 1.0, -1/12, 0.0, 0.0), # V
     SVector(1.0),
     TimeLevels(
         [0], # y
@@ -357,12 +392,14 @@ const AM2 = DiagonallyImplicit(
     3,
 )
 
-# # yₙ = yₙ₋₁ + Δt (9/24 g(yₙ) + 19/24 g(yₙ₋₁) - 5/24 g(yₙ₋₂) + 1/24 g(yₙ₋₃))
+# yₙ = yₙ₋₁ + Δt (9/24 g(yₙ) + 19/24 g(yₙ₋₁) - 5/24 g(yₙ₋₂) + 1/24 g(yₙ₋₃))
 const AM3 = DiagonallyImplicit(
-    SMatrix{1,1}(9/24), # A
-    SMatrix{4,1}(9/24, 1.0, 0.0, 0.0), # B
-    SMatrix{1,4}(1.0, 19/24, -5/24, 1/24), # U
-    SMatrix{4,4}(1.0, 0.0, 0.0, 0.0, 19/24, 0.0, 1.0, 0.0, -5/24, 0.0, 0.0, 1.0, 1/24, 0.0, 0.0, 0.0), # V
+    SMatrix{1, 1}(9/24), # A
+    SMatrix{4, 1}(9/24, 1.0, 0.0, 0.0), # B
+    SMatrix{1, 4}(1.0, 19/24, -5/24, 1/24), # U
+    SMatrix{4, 4}(
+        1.0, 0.0, 0.0, 0.0, 19/24, 0.0, 1.0, 0.0, -5/24, 0.0, 0.0, 1.0, 1/24, 0.0, 0.0, 0.0
+    ), # V
     SVector(1.0),
     TimeLevels(
         [0], # y
@@ -372,12 +409,39 @@ const AM3 = DiagonallyImplicit(
     4,
 )
 
-# # yₙ = yₙ₋₁ + Δt (251/720 g(yₙ) + 646/720 g(yₙ₋₁) - 264/720 g(yₙ₋₂) + 106/720 g(yₙ₋₃) - 19/720 g(yₙ₋₄))
+# yₙ = yₙ₋₁ + Δt (251/720 g(yₙ) + 646/720 g(yₙ₋₁) - 264/720 g(yₙ₋₂) + 106/720 g(yₙ₋₃) -
+#   19/720 g(yₙ₋₄))
 const AM4 = DiagonallyImplicit(
-    SMatrix{1,1}(251/720), # A
-    SMatrix{5,1}(251/720, 1.0, 0.0, 0.0, 0.0), # B
-    SMatrix{1,5}(1.0, 646/720, -264/720, 106/720, -19/720), # U
-    SMatrix{5,5}(1.0, 0.0, 0.0, 0.0, 0.0, 646/720, 0.0, 1.0, 0.0, 0.0, -264/720, 0.0, 0.0, 1.0, 0.0, 106/720, 0.0, 0.0, 0.0, 1.0, -19/720, 0.0, 0.0, 0.0, 0.0), # V
+    SMatrix{1, 1}(251/720), # A
+    SMatrix{5, 1}(251/720, 1.0, 0.0, 0.0, 0.0), # B
+    SMatrix{1, 5}(1.0, 646/720, -264/720, 106/720, -19/720), # U
+    SMatrix{5, 5}(
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        646/720,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        -264/720,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        106/720,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        -19/720,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    ), # V
     SVector(1.0),
     TimeLevels(
         [0], # y
@@ -390,10 +454,10 @@ const AM4 = DiagonallyImplicit(
 # backward differentiation formulas
 # yₙ = yₙ₋₁ + Δt f(yₙ)
 const BDF1 = DiagonallyImplicit(
-    SMatrix{1,1}(1.0), # A
-    SMatrix{1,1}(1.0), # B
-    SMatrix{1,1}(1.0), # U
-    SMatrix{1,1}(1.0), # V
+    SMatrix{1, 1}(1.0), # A
+    SMatrix{1, 1}(1.0), # B
+    SMatrix{1, 1}(1.0), # U
+    SMatrix{1, 1}(1.0), # V
     SVector(0.0),
     TimeLevels(
         [0], # y
@@ -405,10 +469,10 @@ const BDF1 = DiagonallyImplicit(
 
 # yₙ = 4/3 yₙ₋₁ - 1/3 yₙ₋₂ + 2/3 Δt f(yₙ)
 const BDF2 = DiagonallyImplicit(
-    SMatrix{1,1}(2/3), # A
-    SMatrix{2,1}(2/3, 0.0), # B
-    SMatrix{1,2}(4/3, -1/3), # U
-    SMatrix{2,2}(4/3, 1.0, -1/3, 0.0), # V
+    SMatrix{1, 1}(2/3), # A
+    SMatrix{2, 1}(2/3, 0.0), # B
+    SMatrix{1, 2}(4/3, -1/3), # U
+    SMatrix{2, 2}(4/3, 1.0, -1/3, 0.0), # V
     SVector(1.0),
     TimeLevels(
         [0, 1], # y
@@ -418,13 +482,12 @@ const BDF2 = DiagonallyImplicit(
     2,
 )
 
-
 # yₙ = 18/11 yₙ₋₁ - 9/11 yₙ₋₂ + 2/11 yₙ₋₃ + 6/11 Δt f(yₙ)
 const BDF3 = DiagonallyImplicit(
-    SMatrix{1,1}(6/11), # A
-    SMatrix{3,1}(6/11, 0.0, 0.0), # B
-    SMatrix{1,3}(18/11, -9/11, 2/11), # U
-    SMatrix{3,3}(18/11, 1.0, 0.0, -9/11, 0.0, 1.0, 2/11, 0.0, 0.0), # V
+    SMatrix{1, 1}(6/11), # A
+    SMatrix{3, 1}(6/11, 0.0, 0.0), # B
+    SMatrix{1, 3}(18/11, -9/11, 2/11), # U
+    SMatrix{3, 3}(18/11, 1.0, 0.0, -9/11, 0.0, 1.0, 2/11, 0.0, 0.0), # V
     SVector(1.0),
     TimeLevels(
         [0, 1, 2], # y
@@ -436,10 +499,27 @@ const BDF3 = DiagonallyImplicit(
 
 # yₙ = 48/25 yₙ₋₁ - 36/25 yₙ₋₂ + 16/25 yₙ₋₃ - 3/25 yₙ₋₄ + 12/25 Δt f(yₙ)
 const BDF4 = DiagonallyImplicit(
-    SMatrix{1,1}(12/25), # A
-    SMatrix{4,1}(12/25, 0.0, 0.0, 0.0), # B
-    SMatrix{1,4}(48/25, -36/25, 16/25, -3/25), # U
-    SMatrix{4,4}(48/25, 1.0, 0.0, 0.0, -36/25, 0.0, 1.0, 0.0, 16/25, 0.0, 0.0, 1.0, -3/25, 0.0, 0.0, 0.0), # V
+    SMatrix{1, 1}(12/25), # A
+    SMatrix{4, 1}(12/25, 0.0, 0.0, 0.0), # B
+    SMatrix{1, 4}(48/25, -36/25, 16/25, -3/25), # U
+    SMatrix{4, 4}(
+        48/25,
+        1.0,
+        0.0,
+        0.0,
+        -36/25,
+        0.0,
+        1.0,
+        0.0,
+        16/25,
+        0.0,
+        0.0,
+        1.0,
+        -3/25,
+        0.0,
+        0.0,
+        0.0,
+    ), # V
     SVector(1.0),
     TimeLevels(
         [0, 1, 2, 3], # y
@@ -453,12 +533,12 @@ const BDF4 = DiagonallyImplicit(
 
 # Multi-stage
 const BACKWARD_FORWARD_EULER = IMEX(
-    SMatrix{1,1}(1.0), # A Implicit
-    SMatrix{1,1}(0.0), # A Explicit
-    SMatrix{2,1}(1.0, 0.0), # B Implicit
-    SMatrix{2,1}(0.0, 1.0), # B Explicit
-    SMatrix{1,2}(1.0, 1.0), # U
-    SMatrix{2,2}(1.0, 0.0, 1.0, 0.0), # V
+    SMatrix{1, 1}(1.0), # A Implicit
+    SMatrix{1, 1}(0.0), # A Explicit
+    SMatrix{2, 1}(1.0, 0.0), # B Implicit
+    SMatrix{2, 1}(0.0, 1.0), # B Explicit
+    SMatrix{1, 2}(1.0, 1.0), # U
+    SMatrix{2, 2}(1.0, 0.0, 1.0, 0.0), # V
     SVector(1.0), # C Implicit
     SVector(0.0), # C Explicit
     TimeLevels(
@@ -471,12 +551,12 @@ const BACKWARD_FORWARD_EULER = IMEX(
 
 # yₙ = yₙ₋₁ + Δt g(yₙ/2 + yₙ₋₁/2) + Δt f(yₙ₋₁ + Δt/2 f(yₙ₋₁))
 const MIDPOINT_IMEX = IMEX(
-    SMatrix{2,2}(0.0, 0.0, 0.0, 1/2), # A Implicit
-    SMatrix{2,2}(0.0, 1/2, 0.0, 0.0), # A Explicit
-    SMatrix{1,2}(0.0, 1.0), # B Implicit
-    SMatrix{1,2}(0.0, 1.0), # B Explicit
-    SMatrix{2,1}(1.0, 1.0), # U
-    SMatrix{1,1}(1.0), # V
+    SMatrix{2, 2}(0.0, 0.0, 0.0, 1/2), # A Implicit
+    SMatrix{2, 2}(0.0, 1/2, 0.0, 0.0), # A Explicit
+    SMatrix{1, 2}(0.0, 1.0), # B Implicit
+    SMatrix{1, 2}(0.0, 1.0), # B Explicit
+    SMatrix{2, 1}(1.0, 1.0), # U
+    SMatrix{1, 1}(1.0), # V
     SVector(0.0, 1/2), # C Implicit
     SVector(0.0, 1/2), # C Explicit
     TimeLevels(
@@ -489,12 +569,12 @@ const MIDPOINT_IMEX = IMEX(
 
 const _γ = (3 + sqrt(3)) / 6
 const RK3_IMEX = IMEX(
-    SMatrix{3,3}(0.0, 0.0, 0.0, 0.0, _γ, 1.0-2.0*_γ, 0.0, 0.0, _γ), # A Implicit
-    SMatrix{3,3}(0.0, _γ, _γ-1.0, 0.0, 0.0, 2.0*(1.0-_γ), 0.0, 0.0, 0.0), # A Explicit
-    SMatrix{1,3}(0.0, 0.5, 0.5), # B Implicit
-    SMatrix{1,3}(0.0, 0.5, 0.5), # B Explicit
-    SMatrix{3,1}(1.0, 1.0, 1.0), # U
-    SMatrix{1,1}(1.0), # V
+    SMatrix{3, 3}(0.0, 0.0, 0.0, 0.0, _γ, 1.0-2.0*_γ, 0.0, 0.0, _γ), # A Implicit
+    SMatrix{3, 3}(0.0, _γ, _γ-1.0, 0.0, 0.0, 2.0*(1.0-_γ), 0.0, 0.0, 0.0), # A Explicit
+    SMatrix{1, 3}(0.0, 0.5, 0.5), # B Implicit
+    SMatrix{1, 3}(0.0, 0.5, 0.5), # B Explicit
+    SMatrix{3, 1}(1.0, 1.0, 1.0), # U
+    SMatrix{1, 1}(1.0), # V
     SVector(0.0, _γ, 1 - _γ), # C Implicit
     SVector(0.0, _γ, 1 - _γ), # C Explicit
     TimeLevels(
@@ -510,12 +590,14 @@ const RK3_IMEX = IMEX(
 # Second-order Crank-Nicolson/Adams-Bashforth linear multistep scheme
 # yₙ = yₙ₋₁ + Δt (1/2 g(yₙ) + 1/2 g(yₙ₋₁) + 3/2 f(yₙ₋₁) - 1/2 f(yₙ₋₂))
 const CNAB2 = IMEX(
-    SMatrix{1,1}(1/2), # A Implicit
-    SMatrix{1,1}(0.0), # A Explicit
-    SMatrix{4,1}(1 / 2, 1.0, 0.0, 0.0), # B Implicit
-    SMatrix{4,1}(0.0, 0.0, 1.0, 0.0), # B Explicit
-    SMatrix{1,4}(1.0, 1/2, 3/2, -1/2), # U
-    SMatrix{4,4}(1.0, 0.0, 0.0, 0.0, 1/2, 0.0, 0.0, 0.0, 3/2, 0.0, 0.0, 1.0, -1/2, 0.0, 0.0, 0.0), # V
+    SMatrix{1, 1}(1/2), # A Implicit
+    SMatrix{1, 1}(0.0), # A Explicit
+    SMatrix{4, 1}(1 / 2, 1.0, 0.0, 0.0), # B Implicit
+    SMatrix{4, 1}(0.0, 0.0, 1.0, 0.0), # B Explicit
+    SMatrix{1, 4}(1.0, 1/2, 3/2, -1/2), # U
+    SMatrix{4, 4}(
+        1.0, 0.0, 0.0, 0.0, 1/2, 0.0, 0.0, 0.0, 3/2, 0.0, 0.0, 1.0, -1/2, 0.0, 0.0, 0.0
+    ), # V
     SVector(1.0), # C Implicit
     SVector(0.0), # C Explicit
     TimeLevels(
@@ -528,12 +610,14 @@ const CNAB2 = IMEX(
 
 # Stiffly stable splitting scheme
 const SSSS2 = IMEX(
-    SMatrix{1,1}(2/3),
-    SMatrix{1,1}(0.0),
-    SMatrix{4,1}(2 / 3, 0.0, 0.0, 0.0),
-    SMatrix{4,1}(0.0, 0.0, 1.0, 0.0),
-    SMatrix{1,4}(4/3, -1/3, 4/3, -2/3),
-    SMatrix{4,4}(4/3, 1.0, 0.0, 0.0, -1/3, 0.0, 0.0, 0.0, 4/3, 0.0, 0.0, 1.0, -2/3, 0.0, 0.0, 0.0),
+    SMatrix{1, 1}(2/3),
+    SMatrix{1, 1}(0.0),
+    SMatrix{4, 1}(2 / 3, 0.0, 0.0, 0.0),
+    SMatrix{4, 1}(0.0, 0.0, 1.0, 0.0),
+    SMatrix{1, 4}(4/3, -1/3, 4/3, -2/3),
+    SMatrix{4, 4}(
+        4/3, 1.0, 0.0, 0.0, -1/3, 0.0, 0.0, 0.0, 4/3, 0.0, 0.0, 1.0, -2/3, 0.0, 0.0, 0.0
+    ),
     SVector(1.0),
     SVector(0.0),
     TimeLevels(

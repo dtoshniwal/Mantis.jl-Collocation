@@ -13,7 +13,6 @@ using Test
 # dc/dt = Ac
 # where c is the vector of unknowns, and A is the (N-1, N-1) discretisation matrix.
 
-
 # Special case backward FD + Forward Euler at CFL = 1 --------------------------------------
 # If we construct A as first-order upwing finite difference method, the scheme with forward
 # Euler time integration with CFL 1 will be exact.
@@ -22,11 +21,11 @@ const L = 1.0
 const velocity = 0.1
 const dt = dx / velocity  # gives CFL = 1
 const grid = 0.0:dx:L
-const A = (velocity / dx) * SparseArrays.spdiagm(
-    0 => ones(length(grid)), -1 => -1 .* ones(length(grid)-1)
-)
+const A =
+    (velocity / dx) *
+    SparseArrays.spdiagm(0 => ones(length(grid)), -1 => -1 .* ones(length(grid)-1))
 # Set periodic boundary conditions.
-A[1,end] = -(velocity / dx)
+A[1, end] = -(velocity / dx)
 
 function discretised_advection_equation(c, t)
     return -A * c
@@ -40,12 +39,11 @@ linear_advection_ode = TimeIntegrators.define_explicit_ode(discretised_advection
     c_n = TimeIntegrators.initializeScheme(c_0, TimeIntegrators.FORWARD_EULER)
 
     # Pick the end time such that the IC traverses our domain exactly 10 times.
-    for t in 0.0:dt:20.0+dt
+    for t in 0.0:dt:(20.0 + dt)
         TimeIntegrators.timeIntegrate!(c_n, linear_advection_ode, t, dt)
     end
 
     @test isapprox(c_0, TimeIntegrators.get_solution(c_n), atol=1e-15, rtol=1e-15)
 end
-
 
 end

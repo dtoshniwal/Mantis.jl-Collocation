@@ -94,9 +94,9 @@ function timeIntegrate(
 
     # from the PhD thesis "Control of Error and Convergence in ODE Solvers" by Kjell
     # Gustafsson (1992)
-    dt_predicted(dt, ϵ) = dt * clamp(
-        (ϵ / error)^(1 / y1_n.scheme.order), max_step_change, 1 / max_step_change
-    )
+    dt_predicted(dt, ϵ) =
+        dt *
+        clamp((ϵ / error)^(1 / y1_n.scheme.order), max_step_change, 1 / max_step_change)
 
     dt_new = dt_predicted(dt, ϵ)
 
@@ -177,11 +177,13 @@ function timeIntegrate!(
         end
         if num_G > 0 && remaining_startup_steps - num_G <= 0
             index_implicit = num_steps + num_G + (remaining_startup_steps - num_G)
-            y_n.solution[:, index_implicit] .= ode.implicitEvaluate(get_solution(y_n_startup); kwargs...) .* dt
+            y_n.solution[:, index_implicit] .=
+                ode.implicitEvaluate(get_solution(y_n_startup); kwargs...) .* dt
         end
         if num_F > 0 && remaining_startup_steps - num_F <= 0
             index_explicit = num_steps + num_G + num_F + (remaining_startup_steps - num_F)
-            y_n.solution[:, index_explicit] .= ode.explicitEvaluate(ynm1, t; kwargs...) .* dt
+            y_n.solution[:, index_explicit] .=
+                ode.explicitEvaluate(ynm1, t; kwargs...) .* dt
         end
 
         t += dt
@@ -248,7 +250,7 @@ function timeIntegrate_!(
         # Calculate the stage value Yi
         Yi .= F * scheme.A[i, :] * dt
         @inbounds for j in 1:num_steps
-            Yi .+= scheme.U[i, j] * y_nm1[:,j]
+            Yi .+= scheme.U[i, j] * y_nm1[:, j]
         end
         # for j in 1:num_steps
         #     Ti += scheme.A[i, j] * dt
@@ -409,7 +411,7 @@ function timeIntegrate_!(
     @inbounds for i in 1:num_steps
         allG = ode.implicitEvaluate(Y; kwargs...)
         for n in 1:N
-            @views yⁿ[n, i] = dt * dot(allG[(n-1)*num_stages+1:end], scheme.B[i, :])
+            @views yⁿ[n, i] = dt * dot(allG[((n - 1) * num_stages + 1):end], scheme.B[i, :])
             @views yⁿ[n, i] += sum(y_nm1[n] .* scheme.V[i, :])
         end
     end

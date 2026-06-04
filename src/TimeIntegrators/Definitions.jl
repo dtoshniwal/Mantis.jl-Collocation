@@ -85,7 +85,9 @@ end
 
 Creates a [`TimeIntegrationOperators`](@ref) object for an IMEX ODE.
 """
-function define_imex_ode(explicit_evaluate::Function, implicit_solve::Function, implicit_evaluate::Function)
+function define_imex_ode(
+    explicit_evaluate::Function, implicit_solve::Function, implicit_evaluate::Function
+)
     return TimeIntegrationOperators(explicit_evaluate, implicit_solve, implicit_evaluate)
 end
 
@@ -223,7 +225,7 @@ Implicit-Explicit (IMEX) time integration scheme.
 - `num_steps`: number of external steps of the scheme
 """
 struct IMEX{num_stages, num_steps, NT, AA, AE, EE} <:
-    AbstractTimeIntegrator{num_stages, num_steps}
+       AbstractTimeIntegrator{num_stages, num_steps}
     A_IM::SMatrix{num_stages, num_stages, NT, AA}
     A_EX::SMatrix{num_stages, num_stages, NT, AA}
     B_IM::SMatrix{num_steps, num_stages, NT, AE}
@@ -318,7 +320,8 @@ DiagonallyImplicit time integration scheme
 - `num_stages`: amount of stages of the scheme
 - `num_steps`: amount of external steps of the scheme
 """
-struct DiagonallyImplicit{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
+struct DiagonallyImplicit{num_stages, num_steps, NT, AA, AE, EE} <:
+       AbstractTimeIntegrator{num_stages, num_steps}
     A::SMatrix{num_stages, num_stages, NT, AA}
     B::SMatrix{num_steps, num_stages, NT, AE}
     U::SMatrix{num_stages, num_steps, NT, AE}
@@ -358,7 +361,8 @@ Implicit time integration scheme
 - `num_stages`: amount of stages of the scheme
 - `num_steps`: amount of external steps of the scheme
 """
-struct Implicit{num_stages, num_steps, NT, AA, AE, EE} <: AbstractTimeIntegrator{num_stages, num_steps}
+struct Implicit{num_stages, num_steps, NT, AA, AE, EE} <:
+       AbstractTimeIntegrator{num_stages, num_steps}
     A::SMatrix{num_stages, num_stages, NT, AA}
     B::SMatrix{num_steps, num_stages, NT, AE}
     U::SMatrix{num_stages, num_steps, NT, AE}
@@ -383,7 +387,6 @@ end
 function get_order(scheme::AbstractTimeIntegrator)
     return scheme.order
 end
-
 
 """
     TimeIntegrationSolution{T, S, NT}
@@ -427,7 +430,7 @@ mutable struct TimeIntegrationSolution{T, S, NT, ST}
         scheme::AbstractTimeIntegrator{num_stages, num_steps},
         startup_scheme::Union{Nothing, AbstractTimeIntegrator},
         remaining_startup_steps::Int,
-        startup_solution::ST=nothing
+        startup_solution::ST=nothing,
     ) where {NT, num_stages, num_steps, ST}
         return new{typeof(scheme), typeof(startup_scheme), NT, ST}(
             size(solution, 1),

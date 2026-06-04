@@ -68,12 +68,13 @@ function initializeScheme(
     if num_steps == 1
         throw(
             ArgumentError(
-                "The scheme is a single-step scheme, so no startup_scheme is needed.",
+                "The scheme is a single-step scheme, so no startup_scheme is needed."
             ),
         )
     end
 
-    total_length = length(scheme.time_levels.step_values) +
+    total_length =
+        length(scheme.time_levels.step_values) +
         length(scheme.time_levels.step_derivatives_explicit) +
         length(scheme.time_levels.step_derivatives_implicit)
 
@@ -84,7 +85,7 @@ function initializeScheme(
     n_startup_steps = max(
         length(scheme.time_levels.step_values) - 1,
         length(scheme.time_levels.step_derivatives_explicit),
-        length(scheme.time_levels.step_derivatives_implicit)
+        length(scheme.time_levels.step_derivatives_implicit),
     )
 
     sol_startup = initializeScheme(y0, startup_scheme)
