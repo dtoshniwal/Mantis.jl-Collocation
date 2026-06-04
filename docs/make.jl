@@ -35,7 +35,7 @@ Examples = [
 Design = [
     joinpath("Design", "DesignIntroduction.md"),
     "Philosophy" => [joinpath("Design", "Philosophy", "WhyMantis.md")],
-    "Theory" => joinpath.("Design", "Theory", ["FEM.md", "DifferentialForms.md"]),
+    "Theory" => joinpath.("Design", "Theory", ["FEM.md", "DifferentialForms.md", "ExtCoeffs.md"]),
     "Modules" =>
         joinpath.(
             "Design",
@@ -46,7 +46,7 @@ Design = [
                 "Forms.md",
                 "FunctionSpaces.md",
                 "GeneralHelpers.md",
-				"Hierarchy.md",
+                "Hierarchy.md",
                 "Geometry.md",
                 "Mesh.md",
                 "Plot.md",
@@ -65,22 +65,22 @@ Support = [
 
 ReleaseHistory = [
     "v0.6 Acanthops onorei" => joinpath(
-		"ReleaseHistory", "v0-Acanthops", "v0.6-onorei.md"),
+        "ReleaseHistory", "v0-Acanthops", "v0.6-onorei.md"),
     "v0.5 Acanthops godmani" => joinpath(
-		"ReleaseHistory", "v0-Acanthops", "v0.5-godmani.md"),
+        "ReleaseHistory", "v0-Acanthops", "v0.5-godmani.md"),
     "v0.4 Acanthops falcata" => joinpath(
-		"ReleaseHistory", "v0-Acanthops", "v0.4-falcata.md"),
+        "ReleaseHistory", "v0-Acanthops", "v0.4-falcata.md"),
     "v0.3 Acanthops erosa" => joinpath(
-		"ReleaseHistory", "v0-Acanthops", "v0.3-erosa.md"),
+        "ReleaseHistory", "v0-Acanthops", "v0.3-erosa.md"),
     "v0.2 Acanthops centralis" => joinpath(
-		"ReleaseHistory", "v0-Acanthops", "v0.2-centralis.md"),
+        "ReleaseHistory", "v0-Acanthops", "v0.2-centralis.md"),
     "v0.1 Acanthops brunneri" => joinpath(
-		"ReleaseHistory", "v0-Acanthops", "v0.1-brunneri.md"),
+        "ReleaseHistory", "v0-Acanthops", "v0.1-brunneri.md"),
 ]
 
 Pages = [
-	"Getting Started" => "GettingStarted.md",
-	"Examples" => Examples,
+    "Getting Started" => "GettingStarted.md",
+    "Examples" => Examples,
     "Design" => Design,
     "Support(ing)" => Support,
     "Releases" => ReleaseHistory,
