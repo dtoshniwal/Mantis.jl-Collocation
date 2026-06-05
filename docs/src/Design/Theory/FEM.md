@@ -5,7 +5,7 @@ In this section, we introduce the fundamental concepts of FEM through a classica
 
 ## The model problem: Poisson equation
 
-Consider a bounded domain $\Omega \subset \mathbb{R}^k$, $k \in \{1, 2, 3\}$, with a sufficiently smooth boundary $\partial\Omega$. We seek a function $u$ defined on $\Omega$ that satisfies the Poisson equation with homogenous Dirichlet boundary conditions:
+Consider a bounded domain $\Omega \subset \mathbb{R}^k$, $k \in \{1, 2, 3\}$, with a sufficiently smooth boundary $\partial\Omega$. We seek a function $u$ defined on $\Omega$ that satisfies the Poisson equation with homogeneous Dirichlet boundary conditions:
 
 ```math
 \begin{align*}
@@ -15,7 +15,7 @@ u &= 0 \quad \text{on } \partial\Omega,
 ```
 where $f$ is a given source function, and $\Delta = \nabla \cdot \nabla$ is the Laplace operator.
 
-## Strong form vs. weak Form
+## Strong form vs. weak form
 
 The equation above represents the **strong form** of the problem.
 It requires the solution $u$ to have continuous second derivatives, which is often a very restrictive condition, especially when $f$ is not smooth.
@@ -45,8 +45,8 @@ where
 *   $a(u, v) = \int_\Omega \nabla u \cdot \nabla v \, dx$ is a symmetric bilinear form;
 *   $l(v) = \int_\Omega f v \, dx$ is a linear form.
 
-This formulation requires $u$ and $v$ to only have (square-integrable) first derivatives and can thus help describe a much larger class of situations than the strong form.
-For instance, the graph of the solution for a disconinuous choice of $f$ on a square domain is shown below:
+This formulation requires $u$ and $v$ to only have (square-integrable) first derivatives and thus describes a much larger class of situations than the strong form.
+For instance, the graph of the solution for a discontinuous choice of $f$ on a square domain is shown below:
 
 ## Bubnov-Galerkin approximation
 
@@ -62,7 +62,7 @@ a(u_h, v_h) = l(v_h) \quad \forall v_h \in V_h.
 
 To compute the solution, we will take $V_h$ to be a finite element space consisting of piecewise-defined functions on a suitable partition of the domain called a mesh.
 
-For instance, in 1D, an $m$-element mesh for $\Omega = (y_0, y_1)$ can be defined by choosing mesh vertices $x_i$, $i = 0, \dots, m$:
+For instance, in 1D, an $m$-element mesh for $\Omega = (a, b)$ can be defined by choosing mesh vertices $x_i$, $i = 0, \dots, m$:
 
 ```math
 a = x_0 < x_1 < \cdots < x_m = b.
