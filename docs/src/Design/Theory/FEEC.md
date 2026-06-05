@@ -1,6 +1,6 @@
 # Finite Element Exterior Calculus (FEEC)
 
-While the discretization of the weak form of the Poisson problem presented in the previous section is relatively straightforward, the same cannot be said for mixed weak problems associated to PDEs such as the (scalar/vector) Poisson problem, the Maxwell eigenvalue problem, or the incompressible (Navier-)Stokes equations.
+While the discretization of the weak form of the Poisson problem presented in the previous section is relatively straightforward, the same cannot be said for mixed weak problems associated with PDEs such as the (scalar/vector) Poisson problem, the Maxwell eigenvalue problem, or the incompressible (Navier-)Stokes equations.
 FEEC provides a unified framework for discretizing such problems: it gives a systematic way to construct stable finite element discretizations for a wide class of mixed problems, including those listed above.
 
 ## A motivating example: Vector Laplacian on an L-shaped domain
@@ -39,15 +39,15 @@ The correct approach, guided by FEEC, is to use a **mixed formulation**: find ``
     \end{align*}
 ```
 where ``V_h^0`` is an ``H^1``-conforming space and ``V_h^1`` is an ``H(\text{curl})``-conforming space (e.g., Nédélec edge elements, or B-spline generalizations of the edge elements).
-The spaces ``V_h^0`` and ``V_h^1`` need to be chosen in a "compatible" manner (in the sense described in the following sections), but when they are, the discrete solution converges to the true solution and we get away from the problems associated to the primal formulation.
-Note that this is true even when ``V_h^1`` is an appropriately chosen ``H^1``-conforming space (e.g., that of ``C^1`` smooth B-spline edge elements): the difference with the primal formulation is that now the ``H(\text{curl};\Omega)``-norm restricted to such spaces is not equivalent to the ``H^1`` norm.
+The spaces ``V_h^0`` and ``V_h^1`` need to be chosen in a "compatible" manner (in the sense described in the following sections), but when they are, the discrete solution converges to the true solution, and we avoid the issues associated with the primal formulation.
+Note that this is true even when ``V_h^1`` is an appropriately chosen ``H^1``-conforming space (e.g., that of ``C^1`` smooth B-spline edge elements): the key difference from the primal formulation is that now the ``H(\text{curl};\Omega)``-norm restricted to such spaces is not equivalent to the ``H^1`` norm.
 
 ![Correct solution from the mixed FEEC formulation on the L-shaped domain](../../assets/Theory/LshapeFEEC-1.png)
 
 This example illustrates the central lesson of FEEC: the choice of discrete spaces must respect the structure underlying the PDEs being solved.
 For the scalar and vector Laplacians in three dimensions, this structure is encoded in the de Rham complex, introduced in the following.
 
-## The de Rham Complex in 3-dimensions
+## The de Rham Complex in 3 Dimensions
 
 Assume we are working on domains ``\Omega \subset \mathbb{R}^3``.
 The Sobolev spaces that appear in mixed discretizations of scalar/vector Laplacians can be connected into a sequence using the differential operators of the weak forms:
@@ -68,7 +68,7 @@ This sequence is called a **complex** because the composition of any two success
     \nabla \times \nabla \equiv 0\;,\;\nabla \cdot \nabla \times  \equiv 0\;.
 ```
 
-Moreover, the sequence has the interesting property that the following quotient spaces are intimately connected to the topological structure of ``\Omega``:
+Moreover, the following quotient spaces are intimately connected to the topological structure of ``\Omega``:
 
 ```math
     \begin{align*}
@@ -93,9 +93,9 @@ Let us introduce some useful notation to illustrate this:
 
 Then, the de Rham complex can be equivalently written as:
 
-````
+```math
 0 \xrightarrow{} V^0 \xrightarrow{d^0} V^1 \xrightarrow{d^1} V^2 \xrightarrow{d^2} V^3 \xrightarrow{} 0\;.
-````
+```
 
 Using this notation, and since we are working with an exact complex, it can be shown that the following (mixed) weak problem is well-posed for all ``i \in \{0, 1, 2, 3\}`` (where ``V^{-1} := \{0\}`` by convention): find ``(\sigma, u, p) \in V^{i-1} \times V^{i} \times \mathcal{H}^i`` such that
 
@@ -103,13 +103,13 @@ Using this notation, and since we are working with an exact complex, it can be s
     \begin{equation}
     \begin{split}
         (\sigma, \tau) - (u, d^{i-1}\tau) &= 0 \quad \forall \tau \in V^{i-1},\\
-        (d\sigma, v) + (d^i u, d^i v) + (p, v) &= (f, v) \quad \forall v \in V^i,\\
+        (d^{i-1}\sigma, v) + (d^i u, d^i v) + (p, v) &= (f, v) \quad \forall v \in V^i,\\
         (u, q) &= 0 \quad \forall q \in \mathcal{H}^{i}.
     \end{split}
     \end{equation}
 ```
 
-This is a useful and elegant way to talk about four different problems at the same time.
+This is a useful and elegant way to express four different problems at the same time.
 For instance, when ``i = 0``, since ``V^{-1} = \{0\}`` the ``\sigma`` equation vanishes, and we recover the standard Poisson problem discussed in the previous section (albeit now with homogeneous natural boundary conditions): find ``(u, p) \in H^1(\Omega) \times \mathbb{R}`` such that
 
 ```math
@@ -145,13 +145,13 @@ FEEC then states that, if there exist bounded cochain projection operators ``\pi
     \begin{equation}
         \begin{split}
             (\sigma_h, \tau_h) - (u_h, d^{i-1}\tau_h) &= 0 \quad \forall \tau_h \in V_h^{i-1},\\
-            (d\sigma_h, v_h) + (d^i u_h, d^i v_h) + (p_h, v_h) &= (f, v_h) \quad \forall v_h \in V_h^i,\\
+            (d^{i-1}\sigma_h, v_h) + (d^i u_h, d^i v_h) + (p_h, v_h) &= (f, v_h) \quad \forall v_h \in V_h^i,\\
             (u_h, q_h) &= 0 \quad \forall q_h \in \mathcal{H}_h^i.
         \end{split}
     \end{equation}
 ```
 
-This is a very powerful recipe that can be applied to Hilbert complexes that are more general than the de Rham complex, and used to construct stable finite element discretizations for a wide class of associated problems.
+This is a very powerful result that can be applied to Hilbert complexes that are more general than the de Rham complex, and used to construct stable finite element discretizations for a wide class of associated problems.
 
 ## Differential forms and generalization to arbitrary dimensions
 
@@ -163,4 +163,4 @@ The vector-proxy presentation above is convenient in three dimensions, but the u
 
 where ``H\Lambda^k(\Omega)`` denotes the space of ``k``-forms with square-integrable exterior derivatives. For a precise treatment we refer the reader to [Arnold2010].
 
-In dimensions ``n \leq 3``, the spaces ``H\Lambda^k(\Omega)`` are isomorphic to the familiar vector-proxy spaces: ``H\Lambda^0 \cong H^1``, ``H\Lambda^1 \cong H(\text{curl})``, ``H\Lambda^2 \cong H(\text{div})``, and ``H\Lambda^3 \cong L^2``, with the exterior derivative corresponding to ``\nabla``, ``\nabla\times``, and ``\nabla\cdot`` respectively. Mantis adopts the differential-form language throughout in order to keep the notation dimension-independent and in line with the FEEC literature.
+In dimensions ``n \leq 3``, the spaces ``H\Lambda^k(\Omega)`` are isomorphic to the familiar vector-proxy spaces: ``H\Lambda^0 \cong H^1``, ``H\Lambda^1 \cong H(\text{curl})``, ``H\Lambda^2 \cong H(\text{div})``, and ``H\Lambda^3 \cong L^2``, with the exterior derivative corresponding to ``\nabla``, ``\nabla\times``, and ``\nabla\cdot`` respectively. Mantis adopts the differential-form language throughout in order to keep the notation dimension-independent and consistent with the FEEC literature.
