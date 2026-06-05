@@ -115,17 +115,17 @@ ode_position = TimeIntegrators.define_explicit_ode(f_position)
 #
 # To make this work in `Mantis`, we setup the two solutions `x_n` and `v_n` using the
 # previously defined initial conditions and using the forward Euler method in each.
-const x_n = TimeIntegrators.initializeScheme(x₀, TimeIntegrators.FORWARD_EULER)
-const v_n = TimeIntegrators.initializeScheme(v₀, TimeIntegrators.FORWARD_EULER)
+const x_n = TimeIntegrators.initialize_scheme(x₀, TimeIntegrators.FORWARD_EULER)
+const v_n = TimeIntegrators.initialize_scheme(v₀, TimeIntegrators.FORWARD_EULER)
 
 function integrate!(x_n, v_n, tail_x, tail_y, t, tail_length)
     ## Advance both ODEs. Note that the velocity must be updated first, to ensure that the
     ## position update can use the new velocity. This is what makes this the symplectic
     ## Euler scheme.
-    TimeIntegrators.timeIntegrate!(
+    TimeIntegrators.time_integrate!(
         v_n, ode_velocity, t, dt; pos=TimeIntegrators.get_solution(x_n)
     )
-    TimeIntegrators.timeIntegrate!(
+    TimeIntegrators.time_integrate!(
         x_n, ode_position, t+dt/2, dt; vel=TimeIntegrators.get_solution(v_n)
     )
 

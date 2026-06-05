@@ -1,5 +1,5 @@
 """
-mapButcherTableauToScheme::(Matrix{Float64}, Array{Float64}, Array{Float64}) -> AbstractTimeIntegrator \\
+butcher_tableau_to_glm::(Matrix{Float64}, Array{Float64}, Array{Float64}) -> AbstractTimeIntegrator \\
 
 A::Matrix{Float64} is a square matrix of size sxs, where num_stages is the number of stages of the scheme \\
 B::Array{Float64} is a vector of size num_stages \\
@@ -13,7 +13,7 @@ International Journal of Computational Fluid Dynamics. 25. 107-125. 10.1080/1061
 
 Specficly Appendix A.1
 """
-function mapButcherTableauToScheme(
+function butcher_tableau_to_glm(
     A::SMatrix{num_stages, num_stages, T},
     B::SVector{num_stages, T},
     C::SVector{num_stages, T},
@@ -61,25 +61,25 @@ end
 # OrderScheme is defined as abstract type o} end
 
 # order 1
-const FORWARD_EULER = mapButcherTableauToScheme(
+const FORWARD_EULER = butcher_tableau_to_glm(
     SMatrix{1, 1}(0.0), SVector(1.0), SVector(0.0), 1
 )
 # order 2
-const EXPLICIT_MIDPOINT = mapButcherTableauToScheme(
+const EXPLICIT_MIDPOINT = butcher_tableau_to_glm(
     SMatrix{2, 2}(0.0, 1/2, 0.0, 0.0), SVector(0.0, 1.0), SVector(0.0, 1 / 2), 2
 )
 
 # order 2
-const HEUN2 = mapButcherTableauToScheme(
+const HEUN2 = butcher_tableau_to_glm(
     SMatrix{2, 2}(0.0, 1.0, 0.0, 0.0), SVector(1 / 2, 1 / 2), SVector(0.0, 1.0), 2
 )
 # order 2
-const RALSTON2 = mapButcherTableauToScheme(
+const RALSTON2 = butcher_tableau_to_glm(
     SMatrix{2, 2}(0.0, 2/3, 0.0, 0.0), SVector(1 / 4, 3 / 4), SVector(0.0, 2 / 3), 2
 )
 
 # order 3
-const HEUN3 = mapButcherTableauToScheme(
+const HEUN3 = butcher_tableau_to_glm(
     SMatrix{3, 3}(0.0, 1/3, 0.0, 0.0, 0.0, 2/3, 0.0, 0.0, 0.0),
     SVector(1 / 4, 0.0, 3 / 4),
     SVector(0.0, 1 / 3, 2 / 3),
@@ -87,7 +87,7 @@ const HEUN3 = mapButcherTableauToScheme(
 )
 
 # order 3
-const RK3 = mapButcherTableauToScheme(
+const RK3 = butcher_tableau_to_glm(
     SMatrix{3, 3}(0.0, 1/2, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0),
     SVector(1 / 6, 2 / 3, 1 / 6),
     SVector(0.0, 1 / 2, 1.0),
@@ -95,7 +95,7 @@ const RK3 = mapButcherTableauToScheme(
 )
 
 # order 3
-const RALTSON3 = mapButcherTableauToScheme(
+const RALTSON3 = butcher_tableau_to_glm(
     SMatrix{3, 3}(0.0, 1/2, 0.0, 0.0, 0.0, 3/4, 0.0, 0.0, 0.0),
     SVector(2 / 9, 1 / 3, 4 / 9),
     SVector(0.0, 1 / 2, 3 / 4),
@@ -104,7 +104,7 @@ const RALTSON3 = mapButcherTableauToScheme(
 
 # order 3
 # Van der Houwen's/Wray's third-order method
-const VDHW3 = mapButcherTableauToScheme(
+const VDHW3 = butcher_tableau_to_glm(
     SMatrix{3, 3}(0.0, 8/15, 1/4, 0.0, 0.0, 5/12, 0.0, 0.0, 0.0),
     SVector(1 / 4, 0, 3 / 4),
     SVector(0.0, 8 / 15, 2 / 3),
@@ -113,7 +113,7 @@ const VDHW3 = mapButcherTableauToScheme(
 
 # order 3
 # Third-order Strong Stability Preserving Runge-Kutta
-const SSPRK3 = mapButcherTableauToScheme(
+const SSPRK3 = butcher_tableau_to_glm(
     SMatrix{3, 3}(0.0, 1.0, 1/4, 0.0, 0.0, 1/4, 0.0, 0.0, 0.0),
     SVector(1 / 6, 1 / 6, 2 / 3),
     SVector(0.0, 1.0, 1 / 2),
@@ -121,7 +121,7 @@ const SSPRK3 = mapButcherTableauToScheme(
 )
 
 # order 4
-const RK4 = mapButcherTableauToScheme(
+const RK4 = butcher_tableau_to_glm(
     SMatrix{4, 4}(
         0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0
     ),
@@ -132,7 +132,7 @@ const RK4 = mapButcherTableauToScheme(
 
 # order 4
 # 3/8-rule fourth-order method
-const RK4_3_8 = mapButcherTableauToScheme(
+const RK4_3_8 = butcher_tableau_to_glm(
     SMatrix{4, 4}(
         0.0, 1/3, -1/3, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0
     ),
@@ -142,7 +142,7 @@ const RK4_3_8 = mapButcherTableauToScheme(
 )
 
 # order 4
-const RALTSON4 = mapButcherTableauToScheme(
+const RALTSON4 = butcher_tableau_to_glm(
     SMatrix{4, 4}(
         0.0,
         2/5,
@@ -174,16 +174,14 @@ const RALTSON4 = mapButcherTableauToScheme(
 # Implicit:
 
 # order 1
-const BACKWARD_EULER = mapButcherTableauToScheme(
+const BACKWARD_EULER = butcher_tableau_to_glm(
     SMatrix{1, 1}(1.0), SVector(1.0), SVector(1.0), 1
 )
 
-const RADAU_IA_1 = mapButcherTableauToScheme(
-    SMatrix{1, 1}(1.0), SVector(1.0), SVector(0.0), 1
-)
+const RADAU_IA_1 = butcher_tableau_to_glm(SMatrix{1, 1}(1.0), SVector(1.0), SVector(0.0), 1)
 
 # order 2
-const IMPLICIT_MIDPOINT = mapButcherTableauToScheme(
+const IMPLICIT_MIDPOINT = butcher_tableau_to_glm(
     SMatrix{1, 1}(0.5), SVector(1.0), SVector(1 / 2), 2
 )
 
@@ -191,7 +189,7 @@ const IMPLICIT_MIDPOINT = mapButcherTableauToScheme(
 # R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer.
 # Anal., 14(6):1006–1021, 1977
 const _α_DIRK2 = 1 - sqrt(2)/2
-const DIRK2 = mapButcherTableauToScheme(
+const DIRK2 = butcher_tableau_to_glm(
     SMatrix{2, 2}(_α_DIRK2, 1-_α_DIRK2, 0.0, _α_DIRK2),
     SVector(1-_α_DIRK2, _α_DIRK2),
     SVector(_α_DIRK2, 1),
@@ -202,7 +200,7 @@ const DIRK2 = mapButcherTableauToScheme(
 # Crouzeix's two-stage, 3rd order Diagonally Implicit Runge–Kutta method:
 # R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer.
 # Anal., 14(6):1006–1021, 1977
-const DIRK3 = mapButcherTableauToScheme(
+const DIRK3 = butcher_tableau_to_glm(
     SMatrix{2, 2}(1/2 + sqrt(3)/6, -sqrt(3)/3, 0.0, 1/2+sqrt(3)/6),
     SVector(1 / 2, 1 / 2),
     SVector(1 / 2 + sqrt(3) / 6, 1 / 2 - sqrt(3) / 6),
@@ -210,7 +208,7 @@ const DIRK3 = mapButcherTableauToScheme(
 )
 
 # order 3
-const RADAU_IA_3 = mapButcherTableauToScheme(
+const RADAU_IA_3 = butcher_tableau_to_glm(
     SMatrix{2, 2}(1/4, 1/4, -1/4, 5/12), SVector(1 / 4, 3 / 4), SVector(0, 2 / 3), 3
 )
 
@@ -219,7 +217,7 @@ const RADAU_IA_3 = mapButcherTableauToScheme(
 # R. Alexander. Diagonally implicit runge-kutta methods for stiff odes. SIAM J. Numer.
 # Anal., 14(6):1006–1021, 1977
 const _α_DIRK4 = 2 / sqrt(3) * cos(pi / 18)
-const DIRK4 = mapButcherTableauToScheme(
+const DIRK4 = butcher_tableau_to_glm(
     SMatrix{3, 3}(
         (1+_α_DIRK4)/2,
         -_α_DIRK4/2,
@@ -237,7 +235,7 @@ const DIRK4 = mapButcherTableauToScheme(
 )
 
 # order 4
-const GAUSS_LEGENDRE_4 = mapButcherTableauToScheme(
+const GAUSS_LEGENDRE_4 = butcher_tableau_to_glm(
     SMatrix{2, 2}(1/4, 1/4+sqrt(3)/6, 1/4-sqrt(3)/6, 1/4),
     SVector(1 / 2, 1 / 2),
     SVector(1 / 2 - sqrt(3) / 6, 1 / 2 + sqrt(3) / 6),
@@ -245,7 +243,7 @@ const GAUSS_LEGENDRE_4 = mapButcherTableauToScheme(
 )
 
 # order 6
-const GAUSS_LEGENDRE_6 = mapButcherTableauToScheme(
+const GAUSS_LEGENDRE_6 = butcher_tableau_to_glm(
     SMatrix{3, 3}(
         5/36,
         5 / 36+sqrt(15) / 24,

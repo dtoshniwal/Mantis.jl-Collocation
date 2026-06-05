@@ -1,5 +1,5 @@
 """
-    initializeScheme(
+    initialize_scheme(
         y0::Matrix{Float64}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
     ) where {num_stages, num_steps}
 
@@ -12,14 +12,14 @@ Creates the TimeIntegrationSolution object with a initialized y_0 vector.
 # Returns
 - `TimeIntegrationSolution{num_steps}`: The initialized solution vector.
 """
-function initializeScheme(
+function initialize_scheme(
     y0::Matrix{T}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
 ) where {T, num_stages, num_steps}
     return TimeIntegrationSolution(y0, scheme, nothing, 0)
 end
 
 """
-    initializeScheme(
+    initialize_scheme(
         y0::Vector{T}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
     ) where {T, num_stages, num_steps}
 
@@ -29,7 +29,7 @@ For a single-step scheme (multi-stage).
 - `y0::Vector{T}`: The initial value of the solution vector.
 - `scheme::AbstractTimeIntegrator{num_stages, num_steps}`: The time integration scheme.
 """
-function initializeScheme(
+function initialize_scheme(
     y0::Vector{T}, scheme::AbstractTimeIntegrator{num_stages, num_steps}
 ) where {T, num_stages, num_steps}
     if maximum(scheme.time_levels) != 0
@@ -40,11 +40,11 @@ function initializeScheme(
     yn = zeros(T, length(y0), num_steps)
     yn[:, 1] .= y0
 
-    return initializeScheme(yn, scheme)
+    return initialize_scheme(yn, scheme)
 end
 
 """
-    initializeScheme(
+    initialize_scheme(
         y0::Vector{Float64},
         scheme::AbstractTimeIntegrator{s1, num_steps},
         startup_scheme::AbstractTimeIntegrator{s2, 1},
@@ -60,7 +60,7 @@ For a multi-step scheme, where also stage derivatives have to be initialized.
 # Returns
 - `TimeIntegrationSolution{num_steps}`: The initialized solution vector.
 """
-function initializeScheme(
+function initialize_scheme(
     y0::Vector{T},
     scheme::AbstractTimeIntegrator{num_stages_scheme, num_steps},
     startup_scheme::AbstractTimeIntegrator{num_stages_startup, 1},
@@ -88,7 +88,7 @@ function initializeScheme(
         length(scheme.time_levels.step_derivatives_implicit),
     )
 
-    sol_startup = initializeScheme(y0, startup_scheme)
+    sol_startup = initialize_scheme(y0, startup_scheme)
 
     return TimeIntegrationSolution(yn, scheme, startup_scheme, n_startup_steps, sol_startup)
 end

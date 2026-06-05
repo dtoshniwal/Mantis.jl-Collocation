@@ -32,12 +32,12 @@ test_ode_implicit = TimeIntegrators.define_implicit_ode(implicitSolve, x -> lamb
 @test_opt TimeIntegrators.define_imex_ode(
     (yn, t) -> 0.5 * lambda * yn,  # Explcit evaluation
     (x, h, t) -> (LinearAlgebra.I - 0.5 * h * lambda) \ x,  # Implicit solver
-    x -> 0.5 * lambda * x  # Implicit evaluate
+    x -> 0.5 * lambda * x,  # Implicit evaluate
 )
 test_ode_imex = TimeIntegrators.define_imex_ode(
     (yn, t) -> 0.5 * lambda * yn,  # Explcit evaluation
     (x, h, t) -> (LinearAlgebra.I - 0.5 * h * lambda) \ x,  # Implicit solver
-    x -> 0.5 * lambda * x  # Implicit evaluate
+    x -> 0.5 * lambda * x,  # Implicit evaluate
 )
 
 const schemes = (
@@ -92,22 +92,22 @@ const dt = 0.2
 const t = 0.0
 
 # Test the convenience function
-@test_opt TimeIntegrators.mapButcherTableauToScheme( # Explicit RK4
-    SMatrix{4,4}(
+@test_opt TimeIntegrators.butcher_tableau_to_glm( # Explicit RK4
+    SMatrix{4, 4}(
         0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0
     ),
     SVector(1 / 6, 1 / 3, 1 / 3, 1 / 6),
     SVector(0.0, 0.5, 0.5, 1.0),
     4,
 )
-@test_opt TimeIntegrators.mapButcherTableauToScheme( # DiagonallyImplicit DIRK3
-    SMatrix{2,2}(1/2 + sqrt(3)/6, -sqrt(3)/3, 0.0, 1/2+sqrt(3)/6),
+@test_opt TimeIntegrators.butcher_tableau_to_glm( # DiagonallyImplicit DIRK3
+    SMatrix{2, 2}(1/2 + sqrt(3)/6, -sqrt(3)/3, 0.0, 1/2+sqrt(3)/6),
     SVector(1 / 2, 1 / 2),
     SVector(1 / 2 + sqrt(3) / 6, 1 / 2 - sqrt(3) / 6),
     3,
 )
-@test_opt TimeIntegrators.mapButcherTableauToScheme( # Implicit GAUSS_LEGENDRE_4
-    SMatrix{2,2}(1/4, 1/4+sqrt(3)/6, 1/4-sqrt(3)/6, 1/4),
+@test_opt TimeIntegrators.butcher_tableau_to_glm( # Implicit GAUSS_LEGENDRE_4
+    SMatrix{2, 2}(1/4, 1/4+sqrt(3)/6, 1/4-sqrt(3)/6, 1/4),
     SVector(1 / 2, 1 / 2),
     SVector(1 / 2 - sqrt(3) / 6, 1 / 2 + sqrt(3) / 6),
     4,
@@ -119,12 +119,12 @@ const t = 0.0
 @test_opt TimeIntegrators.define_imex_ode(
     (yn, t) -> 0.5 * lambda * yn,  # Explcit evaluation
     (x, h, t) -> (LinearAlgebra.I - 0.5 * h * lambda) \ x,  # Implicit solver
-    x -> 0.5 * lambda * x  # Implicit evaluate
+    x -> 0.5 * lambda * x,  # Implicit evaluate
 )
 
 # define_implicit_linear in all it's versions
-const M = rand(4,4)
-const K = rand(4,4)
+const M = rand(4, 4)
+const K = rand(4, 4)
 const F = rand(4)
 const g = x -> x
 @test_opt TimeIntegrators.define_implicit_linear(M, K, F, g)
@@ -140,25 +140,25 @@ foreach(schemes) do (scheme, startup_scheme)
     @show scheme
 
     if isnothing(startup_scheme)
-        @test_opt TimeIntegrators.initializeScheme([y_0], scheme)
-        y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+        @test_opt TimeIntegrators.initialize_scheme([y_0], scheme)
+        y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
     else
-        @test_opt TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
-        y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+        @test_opt TimeIntegrators.initialize_scheme([y_0], scheme, startup_scheme)
+        y_n = TimeIntegrators.initialize_scheme([y_0], scheme, startup_scheme)
     end
 
     if isa(scheme, TimeIntegrators.Explicit)
-        @test_opt TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
-        TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
+        @test_opt TimeIntegrators.time_integrate!(y_n, test_ode_explicit, t, dt)
+        TimeIntegrators.time_integrate!(y_n, test_ode_explicit, t, dt)
     elseif isa(scheme, TimeIntegrators.DiagonallyImplicit)
-        @test_opt TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
-        TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
+        @test_opt TimeIntegrators.time_integrate!(y_n, test_ode_implicit, t, dt)
+        TimeIntegrators.time_integrate!(y_n, test_ode_implicit, t, dt)
     elseif isa(scheme, TimeIntegrators.Implicit)
-        @test_opt TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
-        TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
+        @test_opt TimeIntegrators.time_integrate!(y_n, test_ode_implicit, t, dt)
+        TimeIntegrators.time_integrate!(y_n, test_ode_implicit, t, dt)
     elseif isa(scheme, TimeIntegrators.IMEX)
-        @test_opt TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
-        TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
+        @test_opt TimeIntegrators.time_integrate!(y_n, test_ode_imex, t, dt)
+        TimeIntegrators.time_integrate!(y_n, test_ode_imex, t, dt)
     else
         @warn "Unknown TimeIntegrator type: $(typeof(scheme))"
     end

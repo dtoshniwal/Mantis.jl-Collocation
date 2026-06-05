@@ -579,14 +579,14 @@ u_hi.coefficients[1] = u_0
 u_hi.coefficients[end] = u_L
 
 ## Initialise the time scheme
-const u_h_n = TimeIntegrators.initializeScheme(u_hi.coefficients[2:end-1], scheme)
+const u_h_n = TimeIntegrators.initialize_scheme(u_hi.coefficients[2:end-1], scheme)
 
 
 # Now we are set to march our equation in time. We will also create a video, which is why
 # we set up the time `Observable`. The `all_y` variable is a lift, which is `Makie`'s way
 # of expressing a depency. That is, as soon as we update `time`, `Makie` will automatically
 # update all other variables in the plot that depend on `time`. In our case, this is the
-# `all_y` variable, which calls `TimeIntegrators.timeIntegrate!` to advance our solution.
+# `all_y` variable, which calls `TimeIntegrators.time_integrate!` to advance our solution.
 
 ## We use Printf to print the time in our animation.
 using Printf
@@ -594,7 +594,7 @@ using Printf
 time = Observable(dt)
 
 all_y = lift(time) do t
-    TimeIntegrators.timeIntegrate!(u_h_n, heat_equation, t, dt)
+    TimeIntegrators.time_integrate!(u_h_n, heat_equation, t, dt)
 
     u_hi.coefficients[2:end-1] = TimeIntegrators.get_solution(u_h_n)
 

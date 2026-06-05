@@ -80,8 +80,8 @@ const integrators = (
 
 @testset "Explicit Integrators" verbose = true begin
     foreach(integrators) do scheme
-        ck_n = TimeIntegrators.initializeScheme(ck_0, scheme)
-        TimeIntegrators.timeIntegrate!(ck_n, linear_advection_ode, 0.0, dt)
+        ck_n = TimeIntegrators.initialize_scheme(ck_0, scheme)
+        TimeIntegrators.time_integrate!(ck_n, linear_advection_ode, 0.0, dt)
 
         # Pick just one factor to test (away from the boundary condition).
         amplifaction_factor_scheme = (TimeIntegrators.get_solution(ck_n) ./ ck_0)[14]
@@ -136,8 +136,8 @@ implicit_linear_advection_ode = TimeIntegrators.define_implicit_linear(
 
 @testset "Diagonally Implicit Integrators" verbose = true begin
     foreach(diagonally_implicit_integrators) do (scheme, exact_stability_function)
-        ck_n = TimeIntegrators.initializeScheme(ck_0, scheme)
-        TimeIntegrators.timeIntegrate!(ck_n, implicit_linear_advection_ode, 0.0, dt)
+        ck_n = TimeIntegrators.initialize_scheme(ck_0, scheme)
+        TimeIntegrators.time_integrate!(ck_n, implicit_linear_advection_ode, 0.0, dt)
 
         # Pick just one factor to test (away from the boundary condition).
         amplifaction_factor_scheme = (TimeIntegrators.get_solution(ck_n) ./ ck_0)[84]
@@ -168,8 +168,8 @@ end
 # @testset "Amplification Factors Implicit Integrators" verbose = true begin
 #     foreach(implicit_integrators) do (scheme, exact_stability_function)
 #         @show scheme
-#         ck_n = TimeIntegrators.initializeScheme(ck_0, scheme)
-#         TimeIntegrators.timeIntegrate!(ck_n, implicit_linear_advection_ode, 0.0, dt; num_stages=TimeIntegrators.get_num_stages(scheme))
+#         ck_n = TimeIntegrators.initialize_scheme(ck_0, scheme)
+#         TimeIntegrators.time_integrate!(ck_n, implicit_linear_advection_ode, 0.0, dt; num_stages=TimeIntegrators.get_num_stages(scheme))
 
 #         # Pick just one factor to test (away from the boundary condition).
 #         amplifaction_factor_scheme = (TimeIntegrators.get_solution(ck_n) ./ ck_0)#[84]

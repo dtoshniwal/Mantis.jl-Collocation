@@ -60,11 +60,11 @@ const explicit_integrators = (
         dts = zeros(length(errors))
         dt = 0.2
         for i in eachindex(errors)
-            y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+            y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
             dt = dt / 2
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_explicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
@@ -93,14 +93,14 @@ const explicit_multi_step_integrators = (
         dt = 0.2
         for i in eachindex(errors)
             if !isnothing(startup_scheme)
-                y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+                y_n = TimeIntegrators.initialize_scheme([y_0], scheme, startup_scheme)
             else
-                y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+                y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
             end
             dt = dt / 2
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_explicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
@@ -135,11 +135,11 @@ const implicit_integrators = (
         dts = zeros(length(errors))
         dt = 0.2
         for i in eachindex(errors)
-            y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+            y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
             dt = dt / 2
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_implicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
@@ -186,14 +186,14 @@ const implicit_multi_step_integrators = (
         for i in eachindex(errors)
             dt = dt / 2
             if !isnothing(startup_scheme)
-                y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+                y_n = TimeIntegrators.initialize_scheme([y_0], scheme, startup_scheme)
             else
-                y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+                y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
             end
 
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_implicit, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_implicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
@@ -229,11 +229,11 @@ const one_step_imex_integrators = (
         dts = zeros(length(errors))
         dt = 0.2
         for i in eachindex(errors)
-            y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+            y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
             dt = dt / 2
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_imex, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
@@ -262,15 +262,15 @@ const multi_step_imex_integrators = (
         dt = 0.2
         for i in eachindex(errors)
             if !isnothing(startup_scheme)
-                y_n = TimeIntegrators.initializeScheme([y_0], scheme, startup_scheme)
+                y_n = TimeIntegrators.initialize_scheme([y_0], scheme, startup_scheme)
             else
-                y_n = TimeIntegrators.initializeScheme([y_0], scheme)
+                y_n = TimeIntegrators.initialize_scheme([y_0], scheme)
             end
 
             dt = dt / 2
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_imex, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_imex, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])
@@ -323,7 +323,7 @@ const explicit_multi_multi_integrators = (ARK3,)
 
             dts[i] = dt
             for t in 0.0:dt:(t_final - dt)
-                TimeIntegrators.timeIntegrate!(y_n, test_ode_explicit, t, dt)
+                TimeIntegrators.time_integrate!(y_n, test_ode_explicit, t, dt)
             end
 
             errors[i] = abs(exact_sol(t_final) - TimeIntegrators.get_solution(y_n)[1])

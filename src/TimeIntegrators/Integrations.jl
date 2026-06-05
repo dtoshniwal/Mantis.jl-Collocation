@@ -1,5 +1,5 @@
 """
-    timeIntegrate(
+    time_integrate(
         y_n::TimeIntegrationSolution,
         ode::TimeIntegrationOperators,
         t::Float64,
@@ -11,7 +11,7 @@ Perform a single time integration step using the given time integration scheme a
 system operators.
 
 # See also
-[`timeIntegrate!`](@ref)
+[`time_integrate!`](@ref)
 
 # Arguments
 - `y_n::TimeIntegrationSolution`: The current solution vector.
@@ -23,7 +23,7 @@ system operators.
 # Returns
 - `TimeIntegrationSolution`: The updated solution vector after one time step.
 """
-function timeIntegrate(
+function time_integrate(
     y_n::TimeIntegrationSolution,
     ode::TimeIntegrationOperators,
     t::Float64,
@@ -31,12 +31,12 @@ function timeIntegrate(
     kwargs...,
 )
     y_n = deepcopy(y_n)
-    timeIntegrate!(y_n, ode, t, dt; kwargs...)
+    time_integrate!(y_n, ode, t, dt; kwargs...)
     return y_n
 end
 
 """
-    timeIntegrate(
+    time_integrate(
         y1_n::T1,
         y2_n::T2,
         ode::TimeIntegrationOperators,
@@ -72,7 +72,7 @@ to adaptive determine the next time step size.
 - `dt_new::Float64`: New time step.
 - `::Float64`: Updated time.
 """
-function timeIntegrate(
+function time_integrate(
     y1_n::T1,
     y2_n::T2,
     ode::TimeIntegrationOperators,
@@ -85,9 +85,9 @@ function timeIntegrate(
     kwargs...,
 ) where {T1 <: TimeIntegrationSolution, T2 <: TimeIntegrationSolution}
     # calculate the solution with the higher order scheme
-    y_higher = timeIntegrate(y1_n, ode, t, dt; kwargs...)
+    y_higher = time_integrate(y1_n, ode, t, dt; kwargs...)
     # calculate the solution with the lower order scheme
-    y_lower = timeIntegrate(y2_n, ode, t, dt; kwargs...)
+    y_lower = time_integrate(y2_n, ode, t, dt; kwargs...)
     # calculate the error
     error = error_evaluation(get_solution(y_higher) - get_solution(y_lower))
     y_lower.solution[:, 1] = get_solution(y_higher)
@@ -103,7 +103,7 @@ function timeIntegrate(
     if error > tol
         # If the error is too high, reject the solution and try again with a smaller time
         # step
-        return timeIntegrate(
+        return time_integrate(
             y1_n,
             y2_n,
             ode,
@@ -121,7 +121,7 @@ function timeIntegrate(
 end
 
 """
-    timeIntegrate!(
+    time_integrate!(
         y_n::TimeIntegrationSolution,
         ode::TimeIntegrationOperators,
         t::Float64,
@@ -133,7 +133,7 @@ Perform a single, in-place time integration step using the given time integratio
 and ODE system operators.
 
 # See also
-[`timeIntegrate`](@ref)
+[`time_integrate`](@ref)
 
 # Arguments
 - `y_n::TimeIntegrationSolution`: The current solution vector.
@@ -145,7 +145,7 @@ and ODE system operators.
 # Returns (in-place)
 - `TimeIntegrationSolution`: The updated solution vector after one time step.
 """
-function timeIntegrate!(
+function time_integrate!(
     y_n::TimeIntegrationSolution{T, S},
     ode::TimeIntegrationOperators,
     t::Float64,
@@ -164,7 +164,7 @@ function timeIntegrate!(
         # solution remains at the expected time level, even if some of the startup steps
         # are only needed to initialise the step derivatives.
         ynm1 = get_solution(y_n_startup)
-        timeIntegrate_!(y_n_startup, y_n.startup_scheme, ode, t, dt; kwargs...)
+        _time_integrate!(y_n_startup, y_n.startup_scheme, ode, t, dt; kwargs...)
 
         # Then we initialise the required solutions and stage derivatives. Note these are
         # all if statements, as we may need all of them at the same time. The first
@@ -191,24 +191,24 @@ function timeIntegrate!(
 
         return nothing
     else
-        timeIntegrate_!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
+        _time_integrate!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
 
         return nothing
     end
 end
 
-function timeIntegrate!(
+function time_integrate!(
     y_n::TimeIntegrationSolution{T, Nothing}, # No startup scheme
     ode::TimeIntegrationOperators,
     t::Float64,
     dt::Float64;
     kwargs...,
 ) where {T}
-    timeIntegrate_!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
+    _time_integrate!(y_n, get_scheme(y_n), ode, t, dt; kwargs...)
 end
 
 """
-    timeIntegrate_!(
+    _time_integrate!(
         y_n::TimeIntegrationSolution,
         scheme::Explicit{num_stages, num_steps},
         ode::TimeIntegrationOperators,
@@ -231,7 +231,7 @@ ODE system operators.
 # Returns (in-place)
 - `TimeIntegrationSolution{num_steps}`: The updated solution vector after one time step.
 """
-function timeIntegrate_!(
+function _time_integrate!(
     y_n::TimeIntegrationSolution,
     scheme::Explicit{num_stages, num_steps},
     ode::TimeIntegrationOperators,
@@ -282,7 +282,7 @@ function timeIntegrate_!(
 end
 
 """
-    timeIntegrate_!(
+    _time_integrate!(
         y_n::TimeIntegrationSolution,
         scheme::DiagonallyImplicit{num_stages, num_steps},
         ode::TimeIntegrationOperators,
@@ -305,7 +305,7 @@ ODE system operators.
 # Returns (in-place)
 - `TimeIntegrationSolution{num_steps}`: The updated solution vector after one time step.
 """
-function timeIntegrate_!(
+function _time_integrate!(
     y_n::TimeIntegrationSolution,
     scheme::DiagonallyImplicit{num_stages, num_steps},
     ode::TimeIntegrationOperators,
@@ -358,7 +358,7 @@ function timeIntegrate_!(
 end
 
 """
-    timeIntegrate_!(
+    _time_integrate!(
         y_n::TimeIntegrationSolution,
         scheme::Implicit{num_stages, num_steps},
         ode::TimeIntegrationOperators,
@@ -381,7 +381,7 @@ ODE system operators.
 # Returns (in-place)
 - `TimeIntegrationSolution{num_steps}`: The updated solution vector after one time step.
 """
-function timeIntegrate_!(
+function _time_integrate!(
     y_n::TimeIntegrationSolution,
     scheme::Implicit{num_stages, num_steps},
     ode::TimeIntegrationOperators,
@@ -422,7 +422,7 @@ function timeIntegrate_!(
 end
 
 """
-    timeIntegrate_!(
+    _time_integrate!(
         y_n::TimeIntegrationSolution,
         scheme::IMEX{num_stages, num_steps},
         ode::TimeIntegrationOperators,
@@ -445,7 +445,7 @@ system operators.
 # Returns (in-place)
 - `TimeIntegrationSolution{num_steps}`: The updated solution vector after one time step.
 """
-function timeIntegrate_!(
+function _time_integrate!(
     y_n::TimeIntegrationSolution,
     scheme::IMEX{num_stages, num_steps},
     ode::TimeIntegrationOperators,
