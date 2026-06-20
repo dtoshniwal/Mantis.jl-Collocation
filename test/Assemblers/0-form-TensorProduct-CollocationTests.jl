@@ -164,4 +164,71 @@ end
     @test Analysis.compute_error_total(uₕ0, uₑ, dΩ, "L2") < 1e-3
 end
 
+@testset "HierarchicalCollocation on a refined 1D mesh" begin
+    # Solution with a peak near x = 1, so refining the right-most elements helps.
+    aa = 20
+    sol(x::Matrix{Float64}) = [vec(@. x[:, 1]^aa * (1 - x[:, 1]))]
+    function rhs(x::Matrix{Float64})
+        return [vec(@. aa * (aa - 1) * x[:, 1]^(aa - 2) - (aa + 1) * aa * x[:, 1]^(aa - 1))]
+    end
+
+    function solve(H)
+        Λ⁰ = Forms.FormSpace(0, H, "u")
+        geometry = Forms.get_geometry(Λ⁰)
+        f⁰ = Forms.AnalyticalFormField(0, rhs, geometry, "f")
+        uₑ = Forms.AnalyticalFormField(0, sol, geometry, "u")
+        points = Assemblers.HierarchicalCollocation(H)
+        inputs = Assemblers.CollocationInputs(Λ⁰, f⁰, points)
+        u⁰ = Assemblers.get_trial_form(inputs)
+        cf = Assemblers.CollocationForm(((δ(d(u⁰)),),), ((f⁰,),), inputs)
+        bc = Forms.set_dirichlet_boundary_conditions(Λ⁰, 0.0)
+        A, b = Assemblers.assemble(cf, bc)
+        uₕ = Forms.build_form_field(Λ⁰, vec(A \ b))
+        dΩ = Quadrature.StandardQuadrature(
+            Quadrature.tensor_product_rule((8,), Quadrature.gauss_legendre),
+            Geometry.get_num_elements(geometry),
+        )
+        return Analysis.compute_error_total(uₕ, uₑ, dΩ, "L2"), points
+    end
+
+    function refine_last_two(H)
+        level = findlast(
+            l -> !isempty(FunctionSpaces.get_level_element_ids(H, l)),
+            1:FunctionSpaces.get_num_levels(H),
+        )
+        ids = sort(FunctionSpaces.get_level_element_ids(H, level))
+        marked = [Int[] for _ in 1:FunctionSpaces.get_num_levels(H)]
+        marked[level] = ids[(end - 1):end]
+        return FunctionSpaces.refine_space(H, marked)
+    end
+
+    B = FunctionSpaces.create_bspline_space((0.0,), (1.0,), (5,), (3,), (2,))
+    H = FunctionSpaces.HierarchicalFiniteElementSpace(B, (2,), true, false)
+
+    errors = Float64[]
+    for _ in 0:2
+        error, points = solve(H)
+        push!(errors, error)
+        # The default candidate points are the per-level Greville abscissae; with the
+        # boundary-ownership rule each active basis gets exactly one collocation point.
+        @test Assemblers.get_num_points(points) == FunctionSpaces.get_num_basis(H)
+        @test !Assemblers.is_bijective(points)
+        H = refine_last_two(H)
+    end
+
+    # Refining the two right-most elements drives the error down at every step.
+    @test issorted(errors; rev=true)
+    @test errors[end] < errors[1] / 5
+
+    # Custom level points are accepted, and a wrong number of levels is rejected.
+    custom = [
+        FunctionSpaces.get_greville_points(FunctionSpaces.get_space(H, l)) for
+        l in 1:FunctionSpaces.get_num_levels(H)
+    ]
+    @test Assemblers.get_num_points(
+        Assemblers.HierarchicalCollocation(H; level_points=custom)
+    ) == FunctionSpaces.get_num_basis(H)
+    @test_throws ArgumentError Assemblers.HierarchicalCollocation(H; level_points=custom[1:1])
+end
+
 end

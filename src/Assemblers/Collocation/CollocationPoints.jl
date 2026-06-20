@@ -153,8 +153,9 @@ Construct a collocation-point set from a user-supplied tensor-product set of poi
 parametric coordinates per direction. This enables non-Greville point choices, including
 over-collocation (more points than basis functions, giving a least-squares system).
 
-The resulting points do not, in general, have a point-to-basis bijection, so the current
-Dirichlet boundary-condition handling is not available for them (see [`is_bijective`](@ref)).
+The resulting points do not, in general, have a point-to-basis bijection (see
+[`is_bijective`](@ref)), so Dirichlet conditions are imposed through the least-squares path of
+[`assemble`](@ref) rather than by row replacement.
 """
 function UserCollocation(
     space::FunctionSpaces.AbstractFESpace{manifold_dim},
@@ -167,9 +168,113 @@ function UserCollocation(
     )
 end
 
+"""
+    HierarchicalCollocation(
+        space::FunctionSpaces.HierarchicalFiniteElementSpace{manifold_dim};
+        level_points=nothing,
+    )
+
+Construct a collocation-point set for a hierarchical (locally refined) finite element `space`,
+whose active mesh mixes elements from several refinement levels.
+
+A set of candidate collocation points is chosen for each level of the hierarchy, given per
+direction in parametric coordinates. By default these are the Greville abscissae of each
+level's space. A custom set may be supplied through `level_points` as a collection with one
+entry per level, each entry an `NTuple{manifold_dim, Vector{Float64}}` of per-direction points.
+
+The hierarchical set is then assembled by taking, for every active element of level `ℓ`, the
+level-`ℓ` candidate points lying inside that element, in element-local coordinates. A point on a
+shared element boundary is collocated once: each interior boundary is owned by the element on
+its lower side, and the outer domain boundary by its adjacent element.
+
+The resulting points carry no point-to-basis bijection (see [`is_bijective`](@ref)), so
+Dirichlet conditions are imposed through the least-squares path of [`assemble`](@ref), as for
+[`UserCollocation`](@ref).
+"""
+function HierarchicalCollocation(
+    space::FunctionSpaces.HierarchicalFiniteElementSpace{manifold_dim};
+    level_points=nothing,
+) where {manifold_dim}
+    num_levels = FunctionSpaces.get_num_levels(space)
+    num_elements = FunctionSpaces.get_num_elements(space)
+
+    candidate_points = _hierarchical_candidate_points(
+        space, level_points, num_levels, manifold_dim
+    )
+
+    # Per-level parametric breakpoints and element-index maps, used to find an active element's
+    # extent in each direction.
+    breakpoints = [
+        Geometry.get_breakpoints(
+            FunctionSpaces.get_parametric_geometry(FunctionSpaces.get_space(space, l))
+        ) for l in 1:num_levels
+    ]
+    cart_maps = [
+        Geometry.get_cart_num_elements(
+            FunctionSpaces.get_parametric_geometry(FunctionSpaces.get_space(space, l))
+        ) for l in 1:num_levels
+    ]
+    domain_min = ntuple(d -> breakpoints[1][d][1], manifold_dim)
+
+    element_local_points = Vector{NTuple{manifold_dim, Vector{Float64}}}(undef, num_elements)
+    element_point_ids = Vector{Vector{Int}}(undef, num_elements)
+    num_points = 0
+    for element in 1:num_elements
+        level, level_id = FunctionSpaces.convert_to_element_level_and_level_id(
+            space, element
+        )
+        cart = Tuple(cart_maps[level][level_id])
+        # Per direction, keep the candidate points the element owns and map them to [0, 1].
+        local_per_dim = ntuple(manifold_dim) do d
+            bp = breakpoints[level][d]
+            left, right = bp[cart[d]], bp[cart[d] + 1]
+            owns_lower = left <= domain_min[d] + 1e-12
+            selected = filter(candidate_points[level][d]) do g
+                (left + 1e-12 < g <= right + 1e-12) ||
+                    (owns_lower && abs(g - left) <= 1e-12)
+            end
+            return [(g - left) / (right - left) for g in selected]
+        end
+        # Row indices for this element's tensor grid (dimension 1 fastest), all distinct
+        # because the ownership rule assigns each point to a single element.
+        ids = collect((num_points + 1):(num_points + prod(length, local_per_dim)))
+        num_points += length(ids)
+        element_local_points[element] = local_per_dim
+        element_point_ids[element] = ids
+    end
+
+    return CollocationPoints{manifold_dim}(
+        element_local_points, element_point_ids, num_points, false
+    )
+end
+
 ############################################################################################
 #                                    Internal helpers                                      #
 ############################################################################################
+# Candidate collocation points per level, per direction. Defaults to the Greville abscissae of
+# each level's space; otherwise validates and normalises the user-supplied set.
+function _hierarchical_candidate_points(space, ::Nothing, num_levels::Int, manifold_dim::Int)
+    return [
+        FunctionSpaces.get_greville_points(FunctionSpaces.get_space(space, l)) for
+        l in 1:num_levels
+    ]
+end
+function _hierarchical_candidate_points(
+    space, level_points, num_levels::Int, manifold_dim::Int
+)
+    if length(level_points) != num_levels
+        throw(
+            ArgumentError(
+                "`level_points` must have one entry per level: expected $(num_levels), got \
+                $(length(level_points)).",
+            ),
+        )
+    end
+    return [
+        ntuple(d -> collect(Float64, level_points[l][d]), manifold_dim) for l in 1:num_levels
+    ]
+end
+
 # The global (linear) index that a tuple of per-direction basis indices maps to. This must
 # match the global basis numbering used by `Forms.evaluate`, so that collocation rows
 # (point ids) coincide with basis ids for Greville collocation.

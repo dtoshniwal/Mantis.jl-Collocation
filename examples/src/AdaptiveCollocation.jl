@@ -55,55 +55,22 @@ H = FunctionSpaces.HierarchicalFiniteElementSpace(B, num_subdivisions, true, fal
 
 # ## Collocation points on a hierarchical mesh
 
-# For each level we take that level's Greville abscissae as the candidate collocation points,
-# given in the parametric coordinate of the unit interval. We then walk over the active elements
-# of the hierarchical mesh: for an element of level ``\ell`` we keep the level-``\ell`` points
-# lying within the element and record them in element-local coordinates. A point sitting on a
-# shared element boundary belongs to both neighbours, so we collocate it once.
-#
-# The result is packaged as a `CollocationPoints` object, the same structure the built-in
-# `GrevilleCollocation` produces, so the rest of the pipeline is unchanged. The points carry no
-# point-to-basis bijection, so the strong boundary conditions later go through the least-squares
-# path described in the [Collocation](@ref) example.
-
-function hierarchical_collocation_points(H)
-    num_elements = FunctionSpaces.get_num_elements(H)
-    num_levels = FunctionSpaces.get_num_levels(H)
-
-    level_points = [
-        FunctionSpaces.get_greville_points(FunctionSpaces.get_space(H, l))[1] for
-        l in 1:num_levels
-    ]
-
-    element_local_points = Vector{NTuple{1, Vector{Float64}}}(undef, num_elements)
-    element_point_ids = Vector{Vector{Int}}(undef, num_elements)
-    claimed = Set{Int}()  # parametric coordinates already collocated (rounded to a key)
-    num_points = 0
-
-    for element in 1:num_elements
-        level, _ = FunctionSpaces.convert_to_element_level_and_level_id(H, element)
-        left, right = FunctionSpaces.get_element_vertices(H, element)[1]
-
-        local_coords = Float64[]
-        ids = Int[]
-        for point in level_points[level]
-            (left - 1e-12) <= point <= (right + 1e-12) || continue
-            key = round(Int, point * 1e9)
-            key in claimed && continue
-            push!(claimed, key)
-            push!(local_coords, (point - left) / (right - left))
-            num_points += 1
-            push!(ids, num_points)
-        end
-
-        element_local_points[element] = (local_coords,)
-        element_point_ids[element] = ids
-    end
-
-    return Assemblers.CollocationPoints{1}(
-        element_local_points, element_point_ids, num_points, false
-    )
-end
+# Recall the rule: choose candidate points for each level, then, for every active element of
+# level ``\ell``, keep the level-``\ell`` candidates that lie inside it.
+# `Assemblers.HierarchicalCollocation` does this. It takes the hierarchical space and,
+# for each level, a set of candidate points per direction in parametric coordinates. By default
+# the candidates are that level's Greville abscissae, so `HierarchicalCollocation(H)` is all we
+# need here. To use a different distribution, pass `level_points` with one entry per level, for
+# example
+# ```julia
+# nl = FunctionSpaces.get_num_levels(H)
+# my_points = [(collect(LinRange(0.0, 1.0, n_l)),) for n_l in ...]  # one tuple per level
+# Assemblers.HierarchicalCollocation(H; level_points=my_points)
+# ```
+# Each candidate point is assigned to the active element that contains it, with shared element
+# boundaries collocated once. The returned points carry no point-to-basis bijection, so the
+# strong boundary conditions go through the least-squares path described in the
+# [Collocation](@ref) example.
 
 # ## Solving and measuring the error
 
@@ -119,7 +86,7 @@ function solve_collocation(H)
     f⁰ = Forms.AnalyticalFormField(0, forcing_expression, geometry, "f")
     uₑ = Forms.AnalyticalFormField(0, exact_expression, geometry, "u")
 
-    points = hierarchical_collocation_points(H)
+    points = Assemblers.HierarchicalCollocation(H)
     inputs = Assemblers.CollocationInputs(Λ⁰, f⁰, points)
     u⁰ = Assemblers.get_trial_form(inputs)
     collocation_form = Assemblers.CollocationForm(((δ(d(u⁰)),),), ((f⁰,),), inputs)
