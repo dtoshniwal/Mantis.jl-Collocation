@@ -11,6 +11,9 @@ end
 @testset "0-form-TensorProduct-LaplacianTests" begin
     include("0-form-TensorProduct-LaplacianTests.jl")
 end
+@testset "0-form-TensorProduct-CollocationTests" begin
+    include("0-form-TensorProduct-CollocationTests.jl")
+end
 @testset "1-form-TensorProduct-MaxwellEigenvalueTests" begin
     include("1-form-TensorProduct-MaxwellEigenvalueTests.jl")
 end

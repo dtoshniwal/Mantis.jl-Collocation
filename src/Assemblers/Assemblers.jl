@@ -14,10 +14,12 @@ using ..Quadrature
 using ..Mesh
 using ..FunctionSpaces
 using ..Analysis
+import ..Points
 
 abstract type AbstractInputs end
 
 include("WeakFormulations/WeakFormulations.jl")
 include("GlobalAssemblers.jl")
+include("Collocation/Collocation.jl")
 
 end
