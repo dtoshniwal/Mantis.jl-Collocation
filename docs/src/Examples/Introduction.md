@@ -37,3 +37,5 @@ Features specific to `Mantis`.
 
 - [Non-polynomial function spaces](@ref) uses trigonometric and exponential B-splines.
 - [Adaptive refinement](@ref) uses hierarchical B-splines driven by an error estimator.
+- [Adaptive collocation](@ref) solves a Poisson problem by collocation on a locally refined
+  hierarchical mesh.

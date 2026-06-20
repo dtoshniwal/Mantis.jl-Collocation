@@ -58,7 +58,10 @@ Examples = [
     ),
     # The features that set Mantis apart.
     "Advanced features" =>
-        joinpath.("Examples", ["NonPolynomialSpaces.md", "AdaptiveRefinement.md"]),
+        joinpath.(
+            "Examples",
+            ["NonPolynomialSpaces.md", "AdaptiveRefinement.md", "AdaptiveCollocation.md"],
+        ),
 ]
 
 Design = [
