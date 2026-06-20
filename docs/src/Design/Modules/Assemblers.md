@@ -100,6 +100,9 @@ The pipeline mirrors the four steps above, with collocation-specific replacement
    imposed in place by row replacement. [`UserCollocation`](@ref) takes a tensor-product set of
    points supplied per direction, enabling non-Greville choices and over-collocation (more
    points than basis functions, giving a least-squares system).
+   [`HierarchicalCollocation`](@ref) builds points for a locally refined hierarchical space by
+   choosing candidate points per level and keeping, for each active element, the points of its
+   level that lie inside it; see the [Adaptive collocation](@ref) example.
 2. **Collect the inputs.** A [`CollocationInputs`](@ref) bundles the trial form(s), the
    forcing(s), and the points. Unlike [`WeakFormInputs`](@ref) there is no test space.
 3. **Build a [`CollocationForm`](@ref).** Its blocks are *bare forms* rather than integral
