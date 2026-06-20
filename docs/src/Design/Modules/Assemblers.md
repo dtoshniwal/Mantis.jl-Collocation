@@ -84,6 +84,35 @@ analytical reference [`get_analytical_maxwell_eig`](@ref); see the
 
 These are good starting points when writing the weak form for a new problem.
 
+## Collocation assembly
+
+Besides the weak (Galerkin) workflow above, `Mantis` can discretise a PDE by collocation, in
+which the strong form is enforced pointwise at a chosen set of points. There is no test space
+and no integration. Each collocation point contributes one row to the system, found by
+evaluating the strong-form operator there. The collocation points say where the equations are
+imposed, much as a quadrature rule says where the integrals are evaluated in Galerkin assembly.
+
+The pipeline mirrors the four steps above, with collocation-specific replacements:
+
+1. **Choose the points.** [`GrevilleCollocation`](@ref) builds one Greville point per basis
+   function. The system is then square, with the `i`-th point tied to the `i`-th basis
+   function. This point-to-basis bijection (see [`is_bijective`](@ref)) lets Dirichlet conditions be
+   imposed in place by row replacement. [`UserCollocation`](@ref) takes a tensor-product set of
+   points supplied per direction, enabling non-Greville choices and over-collocation (more
+   points than basis functions, giving a least-squares system).
+2. **Collect the inputs.** A [`CollocationInputs`](@ref) bundles the trial form(s), the
+   forcing(s), and the points. Unlike [`WeakFormInputs`](@ref) there is no test space.
+3. **Build a [`CollocationForm`](@ref).** Its blocks are *bare forms* rather than integral
+   operators: the `0`-form Poisson problem `δ(d(u⁰)) = -f`, for instance, is the single
+   left-hand block `δ(d(u⁰))` against the right-hand block `-f`.
+4. **Assemble.** [`assemble`](@ref) evaluates the strong-form blocks at the points and returns
+   the global system. Dirichlet conditions are passed the same way regardless of the point set,
+   as a `boundary basis index => value` dictionary, and are imposed strongly whether the
+   strong-form system is square or rectangular: by row replacement for Greville points, and
+   otherwise by lifting and appending constraint rows (see [`apply_collocation_dirichlet`](@ref)).
+
+See the [Collocation](@ref) example for a worked Poisson solve using both point types.
+
 ## All docstrings from Mantis.Assemblers
 ```@autodocs
 Modules = [Main.Mantis.Assemblers]

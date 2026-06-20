@@ -22,6 +22,12 @@ Concrete subtypes should implement:
 """
 abstract type AbstractCollocationPoints{manifold_dim} end
 
+"""
+    get_num_points(points::AbstractCollocationPoints)
+
+Returns the total number of distinct collocation points, i.e. the number of rows in the
+assembled collocation system.
+"""
 function get_num_points(::AbstractCollocationPoints)
     throw(ArgumentError("Method not implemented for this type of collocation points."))
 end
@@ -34,6 +40,12 @@ function get_collocation_points(::AbstractCollocationPoints, ::Int)
     throw(ArgumentError("Method not implemented for this type of collocation points."))
 end
 
+"""
+    get_point_ids(points::AbstractCollocationPoints, element_id::Int)
+
+Returns the global row indices contributed by the collocation points lying in `element_id`,
+ordered to match the points returned by [`get_collocation_points`](@ref).
+"""
 function get_point_ids(::AbstractCollocationPoints, ::Int)
     throw(ArgumentError("Method not implemented for this type of collocation points."))
 end

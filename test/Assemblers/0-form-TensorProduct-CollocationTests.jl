@@ -114,26 +114,54 @@ end
     end
 end
 
-@testset "UserCollocation and boundary-condition guard" begin
+@testset "UserCollocation over-collocation and strong boundary conditions" begin
     B = FunctionSpaces.create_bspline_space(0.0, 1.0, 8, 3, 2)
     num_basis = FunctionSpaces.get_num_basis(B)
-    pts = (collect(LinRange(0.0, 1.0, num_basis)),)
+    # Over-collocate: twice as many points as basis functions, so the strong-form system is
+    # rectangular.
+    pts = (collect(LinRange(0.0, 1.0, 2 * num_basis)),)
     user_points = Assemblers.UserCollocation(B, pts)
 
     @test !Assemblers.is_bijective(user_points)
-    @test Assemblers.get_num_points(user_points) == num_basis
+    @test Assemblers.get_num_points(user_points) == 2 * num_basis
 
-    # Boundary conditions require a point-to-basis bijection; they must be rejected here.
     Λ⁰ = Forms.FormSpace(0, B, "u")
-    _, f⁰ = manufactured_forms(Λ⁰)
+    uₑ, f⁰ = manufactured_forms(Λ⁰)
     inputs = Assemblers.CollocationInputs(Λ⁰, f⁰, user_points)
     u⁰ = Assemblers.get_trial_form(inputs)
     collocation_form = Assemblers.CollocationForm(((δ(d(u⁰)),),), ((f⁰,),), inputs)
-    bc = Forms.set_dirichlet_boundary_conditions(Λ⁰, 0.0)
-    @test_throws ArgumentError Assemblers.assemble(collocation_form, bc)
-    # Without boundary conditions the same point set assembles fine.
+
+    # Without boundary conditions the strong-form system is rectangular: one row per
+    # collocation point, one column per basis function.
     A, b = Assemblers.assemble(collocation_form)
-    @test size(A) == (num_basis, num_basis)
+    @test size(A) == (2 * num_basis, num_basis)
+
+    # Boundary conditions are now imposed strongly for the non-bijective set too, exactly as
+    # for Greville points: pass the `basis index => value` dictionary to `assemble`. The
+    # appended constraint rows keep one column per basis function, and `\` solves the
+    # (over-determined) system in the least-squares sense.
+    bc_value = 0.5
+    bc = Forms.set_dirichlet_boundary_conditions(Λ⁰, bc_value)
+    A_bc, b_bc = Assemblers.assemble(collocation_form, bc)
+    @test size(A_bc, 2) == num_basis
+    @test size(A_bc, 1) == 2 * num_basis + length(bc)
+
+    uₕ = Forms.build_form_field(Λ⁰, vec(A_bc \ b_bc))
+    # Each boundary coefficient is set exactly to the prescribed value.
+    for idx in keys(bc)
+        @test isapprox(uₕ.coefficients[idx], bc_value; atol=1e-12)
+    end
+
+    # With homogeneous conditions the over-collocated least-squares solution is accurate.
+    bc0 = Forms.set_dirichlet_boundary_conditions(Λ⁰, 0.0)
+    A0, b0 = Assemblers.assemble(collocation_form, bc0)
+    uₕ0 = Forms.build_form_field(Λ⁰, vec(A0 \ b0))
+    geometry = Forms.get_geometry(Λ⁰)
+    dΩ = Quadrature.StandardQuadrature(
+        Quadrature.tensor_product_rule((6,), Quadrature.gauss_legendre),
+        Geometry.get_num_elements(geometry),
+    )
+    @test Analysis.compute_error_total(uₕ0, uₑ, dΩ, "L2") < 1e-3
 end
 
 end

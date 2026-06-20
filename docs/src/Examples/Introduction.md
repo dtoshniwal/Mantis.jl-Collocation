@@ -26,6 +26,7 @@ Complete, end-to-end solves, ordered by increasing complexity.
 
 - [L2 projection](@ref) is the smallest complete pipeline.
 - [Hodge Laplacian](@ref) solves the Poisson problem in form language.
+- [Collocation](@ref) solves the Poisson problem in strong form, at Greville or custom points.
 - [Heat Equation](@ref) solves a time-dependent problem.
 - [Biharmonic](@ref) solves a higher-order problem and includes convergence studies.
 - [Maxwell eigenvalue problem](@ref) solves a mixed, structure-preserving eigenproblem.

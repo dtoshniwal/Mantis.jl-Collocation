@@ -50,6 +50,7 @@ Examples = [
         [
             "L2Projection.md",
             "HodgeLaplacian.md",
+            "Collocation.md",
             "HeatEquation.md",
             "Biharmonic.md",
             "MaxwellEigenvalue.md",

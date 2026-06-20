@@ -18,9 +18,9 @@ to collocation points rather than to test basis functions.
 
 # Constructors
 - `CollocationInputs(trial_forms::NTuple, forcings::NTuple, points)`
-- `CollocationInputs(trial_forms::NTuple, points)` — no forcing.
-- `CollocationInputs(trial_form, forcing, points)` — single trial form and forcing.
-- `CollocationInputs(trial_form, points)` — single trial form, no forcing.
+- `CollocationInputs(trial_forms::NTuple, points)`: no forcing.
+- `CollocationInputs(trial_form, forcing, points)`: single trial form and forcing.
+- `CollocationInputs(trial_form, points)`: single trial form, no forcing.
 """
 struct CollocationInputs{manifold_dim, TrF, F, P} <: AbstractInputs
     trial_forms::TrF
